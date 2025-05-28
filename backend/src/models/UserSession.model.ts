@@ -8,7 +8,7 @@ import {
 const userSessionSchema = new Schema<UserSessionDocumentType, UserSessionModel>(
   {
     userId: {
-      type: Schema.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
     },
     refreshToken: {
