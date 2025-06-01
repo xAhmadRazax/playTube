@@ -11,6 +11,7 @@ import {
 } from "../utils/jwtHandler.util.js";
 import { BlacklistModel } from "../models/Blacklist.model.js";
 import { UserSession } from "../models/UserSession.model.js";
+
 export const registerService = async (
   // req: Request,
   {
@@ -71,7 +72,13 @@ export const loginService = async (
   }).select("+password");
 
   if (!user || !(await user?.isPasswordCorrect?.(password))) {
-    throw new AppErrorV4(StatusCodes.UNAUTHORIZED, "Invalid User Credentials.");
+    throw new AppErrorV4(
+      StatusCodes.UNAUTHORIZED,
+      "Invalid entered password.",
+      {
+        errorCode: "ERR_INVALID_CREDENTIALS",
+      }
+    );
   }
   // // generate tokens
   const { accessToken, refreshToken } = generateAccessAndRefreshTokenV1(user);
@@ -100,7 +107,6 @@ export const loginService = async (
     accessToken: accessToken || "",
   };
 };
-
 export const logoutService = async (refreshToken: string) => {
   // const user = await User.findById(id);
 
@@ -115,6 +121,56 @@ export const logoutService = async (refreshToken: string) => {
   // await BlacklistModel.create({
   //   token: refreshToken,
   // });
+};
+export const changePasswordService = async (
+  userId: string,
+  data: { currentPassword: string; newPassword: string },
+  device: string,
+  ipAddress: string
+): Promise<{
+  refreshToken: string;
+  accessToken: string;
+  user: PublicUserType;
+}> => {
+  const { currentPassword, newPassword } = data;
+
+  const user = await User.findById(userId).select("+password");
+  if (!user || !(await user.isPasswordCorrect(currentPassword))) {
+    throw new AppErrorV4(
+      StatusCodes.UNAUTHORIZED,
+      "Invalid entered password.",
+      {
+        errorCode: "ERR_INVALID_CREDENTIALS",
+      }
+    );
+  }
+
+  user.password = newPassword;
+  // await user.save();
+  const { accessToken, refreshToken } = generateAccessAndRefreshTokenV1(user);
+  // updating refresh Token
+  // UserSession.deleteMany({
+  //   userid: user._id,
+  // }),
+  // UserSession.create({ userId: user.id, refreshToken }),
+  await Promise.all([
+    user.save(),
+    UserSession.deleteMany({
+      userId: user._id,
+    }).exec(),
+    UserSession.create({
+      userId: user.id,
+      refreshToken,
+      deviceInfo: device,
+      ipAddress,
+    }),
+  ]);
+
+  return {
+    accessToken,
+    refreshToken,
+    user: user.toJSON(),
+  };
 };
 
 export const tokenRefreshService = async (

@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.util.js";
 import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
 import { StatusCodes } from "http-status-codes";
-import { registerService, loginService, logoutService, tokenRefreshService, } from "../services/auth.service.js";
+import { registerService, loginService, logoutService, changePasswordService, tokenRefreshService, } from "../services/auth.service.js";
 import { AppErrorV4 } from "../utils/ApiError.util.js";
 export const registerUser = asyncHandler(async (req, res) => {
     // getting files
@@ -67,6 +67,33 @@ export const logoutUser = asyncHandler(async (req, res) => {
         .clearCookie("refreshToken", cookieOptions)
         .clearCookie("accessToken", cookieOptions);
     ApiResponseV3.sendJSON(res, StatusCodes.NO_CONTENT, "User logout successfully");
+});
+export const changePassword = asyncHandler(async (req, res, next) => {
+    const { refreshToken, accessToken, user } = await changePasswordService(req.user.id, {
+        currentPassword: req.body.currentPassword,
+        newPassword: req.body.newPassword,
+    }, req.headers["user-agent"] || "", (Array.isArray(req.headers["x-forwarded-for"])
+        ? req.headers["x-forwarded-for"][0]
+        : req.headers["x-forwarded-for"]) ||
+        req.socket.remoteAddress ||
+        "");
+    // setting cookies
+    const cookieOptions = {
+        httpOnly: true,
+        sameSite: true,
+        secure: false,
+    };
+    if (process.env.NODE_ENV === "production") {
+        cookieOptions.secure = true;
+    }
+    res
+        .cookie("accessToken", accessToken, cookieOptions)
+        .cookie("refreshToken", refreshToken, cookieOptions);
+    ApiResponseV3.sendJSON(res, StatusCodes.OK, "Update user password successfully.", {
+        refreshToken,
+        accessToken,
+        user,
+    });
 });
 export const refreshAccessToken = asyncHandler(async (req, res, next) => {
     const incomingRefreshToken = req?.cookies?.refreshToken ||

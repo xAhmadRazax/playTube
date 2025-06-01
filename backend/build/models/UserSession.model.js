@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 import { parseTimeToMs } from "../utils/parseTimeToMS.util.js";
 const userSessionSchema = new Schema({
     userId: {
-        type: Schema.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "User",
     },
     refreshToken: {

@@ -17,7 +17,16 @@ export interface UserSchemaType {
   updatedAt: Date;
 }
 
-export type PublicUserType = Omit<UserSchemaType, "password" | "refreshTokens">;
+export type PublicUserType = Omit<
+  UserSchemaType,
+  | "password"
+  | "refreshTokens"
+  | "passwordChangedAt"
+  | "passwordResetToken"
+  | "passwordResetExpiry"
+  | "createdAt"
+  | "updatedAt"
+>;
 
 export interface UserDocumentType extends UserSchemaType, Document {
   isPasswordCorrect(candidatePassword: string): Promise<boolean>;

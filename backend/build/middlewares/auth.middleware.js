@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { verifyAndDecodeJwtToken } from "../utils/jwtHandler.util.js";
 import { User } from "../models/User.model.js";
 export const protect = asyncHandler(async (req, res, next) => {
-    console.log(req.cookies.accessToken);
     const accessToken = req.cookies?.accessToken ||
         (req.headers?.authorization?.startsWith("Bearer ")
             ? req.headers.authorization?.split(" ")[1]
@@ -38,7 +37,7 @@ export const protect = asyncHandler(async (req, res, next) => {
             errorCode: "ERR_JWT_INVALID",
         });
     }
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).exec();
     // checking if user exist
     if (!user) {
         throw new AppErrorV4(StatusCodes.UNAUTHORIZED, "Invalid token or user no longer exist.", {

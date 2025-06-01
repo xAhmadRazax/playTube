@@ -7,6 +7,7 @@ import {
   registerService,
   loginService,
   logoutService,
+  changePasswordService,
   tokenRefreshService,
 } from "../services/auth.service.js";
 import { BlacklistModel } from "../models/Blacklist.model.js";
@@ -105,6 +106,49 @@ export const logoutUser = asyncHandler(
       res,
       StatusCodes.NO_CONTENT,
       "User logout successfully"
+    );
+  }
+);
+
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { refreshToken, accessToken, user } = await changePasswordService(
+      req.user.id,
+      {
+        currentPassword: req.body.currentPassword,
+        newPassword: req.body.newPassword,
+      },
+      req.headers["user-agent"] || "",
+      (Array.isArray(req.headers["x-forwarded-for"])
+        ? req.headers["x-forwarded-for"][0]
+        : req.headers["x-forwarded-for"]) ||
+        req.socket.remoteAddress ||
+        ""
+    );
+
+    // setting cookies
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: true,
+      secure: false,
+    };
+    if (process.env.NODE_ENV === "production") {
+      cookieOptions.secure = true;
+    }
+
+    res
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", refreshToken, cookieOptions);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Update user password successfully.",
+      {
+        refreshToken,
+        accessToken,
+        user,
+      }
     );
   }
 );

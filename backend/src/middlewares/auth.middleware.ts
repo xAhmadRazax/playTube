@@ -8,7 +8,6 @@ import { User } from "../models/User.model.js";
 
 export const protect = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
-    console.log(req.cookies.accessToken);
     const accessToken =
       req.cookies?.accessToken ||
       (req.headers?.authorization?.startsWith("Bearer ")
@@ -55,7 +54,7 @@ export const protect = asyncHandler(
         }
       );
     }
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).exec();
 
     // checking if user exist
     if (!user) {

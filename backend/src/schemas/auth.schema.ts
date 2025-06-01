@@ -1,5 +1,4 @@
 import { z as zod } from "zod";
-
 export const RegisterSchema = zod.object({
   username: zod
     .string({ required_error: "Username is required." })
@@ -51,7 +50,7 @@ export const LoginSchema = zod
       .trim(),
   })
   .refine(
-    (data) => {
+    (data: { password: string; identifier: string }) => {
       const isEmail = data.identifier.includes("@");
       if (isEmail) {
         return zod.string().email().trim().safeParse(data.identifier).success;
@@ -66,6 +65,31 @@ export const LoginSchema = zod
   );
 
 export type LoginUserType = zod.infer<typeof LoginSchema>;
+
+export const changePasswordSchema = zod.object({
+  currentPassword: zod
+    .string({ required_error: "Current password is required." })
+    .min(6, { message: "Current password must be at least 6 characters long." })
+    .regex(/[A-Z]/, "Current password must have at least one uppercase letter.")
+    .regex(/[0-9]/, "Current password must include at least one number.")
+    .regex(
+      /[^A-Za-z0-9\s]/,
+      "Current password must include at least one special character."
+    )
+    .trim(),
+
+  newPassword: zod
+    .string({ required_error: "New password is required." })
+    .min(6, { message: "New password must be at least 6 characters long." })
+    .regex(/[A-Z]/, "New password must have at least one uppercase letter.")
+    .regex(/[0-9]/, "New password must include at least one number.")
+    .regex(
+      /[^A-Za-z0-9\s]/,
+      "New password must include at least one special character."
+    )
+    .trim(),
+});
+
 // export const LoginSchema = zod
 //   .object({
 //     email: zod

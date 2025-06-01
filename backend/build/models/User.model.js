@@ -53,6 +53,31 @@ const userSchema = new Schema({
     passwordChangedAt: Number,
 }, {
     timestamps: true,
+    toJSON: {
+        transform(_, ret) {
+            delete ret.password;
+            delete ret.__v;
+            if ("passwordResetToken" in ret)
+                delete ret.passwordResetToken;
+            if ("passwordResetExpiry" in ret)
+                delete ret.passwordResetExpiry;
+            if ("passwordChangedAt" in ret)
+                delete ret.passwordChangedAt;
+            if ("refreshTokens" in ret)
+                delete ret.refreshTokens;
+            if ("createdAt" in ret)
+                delete ret.createdAt;
+            if ("updatedAt" in ret)
+                delete ret.updatedAt;
+        },
+    },
+});
+userSchema.pre("save", async function (next) {
+    if (!this.isModified("password") || this.isNew)
+        return next();
+    // saving changes in db takes time so we are just gona remove 1s from the changes time
+    this.passwordChangedAt = Date.now() - 1000;
+    next();
 });
 // this only run when we save the doc with either create() or save() else wont run
 userSchema.pre("save", async function (next) {
@@ -93,7 +118,7 @@ userSchema.methods.generateRefreshToken = function () {
 userSchema.methods.hasPasswordChangedAfterJWTTokenIssued = function (tokenExpiry) {
     const jwtExpiryInMS = +tokenExpiry * 1000;
     if (this.passwordChangedAt) {
-        return (jwtExpiryInMS >= this.passwordChangedAt);
+        return (this.passwordChangedAt >= jwtExpiryInMS);
     }
     return false;
 };
