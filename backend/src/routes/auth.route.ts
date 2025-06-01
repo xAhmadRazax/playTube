@@ -5,6 +5,7 @@ import {
   logoutUser,
   refreshAccessToken,
   changePassword,
+  getCurrentUser,
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { validationAndFileCleanupHandler } from "../middlewares/validationAndFileCleanup.middleware.js";
@@ -41,5 +42,6 @@ router
   .route("/change-password")
   .post(zodSchemaValidation(changePasswordSchema), protect, changePassword);
 
+router.route("/me").get(protect, getCurrentUser);
 router.route("/refresh-token").post(refreshAccessToken);
 export { router };

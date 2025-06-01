@@ -9,6 +9,7 @@ import {
   logoutService,
   changePasswordService,
   tokenRefreshService,
+  getCurrentUserService,
 } from "../services/auth.service.js";
 import { BlacklistModel } from "../models/Blacklist.model.js";
 import { AppErrorV4 } from "../utils/ApiError.util.js";
@@ -147,6 +148,21 @@ export const changePassword = asyncHandler(
       {
         refreshToken,
         accessToken,
+        user,
+      }
+    );
+  }
+);
+
+export const getCurrentUser = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await getCurrentUserService(req.user._id);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Current user fetched successfully.",
+      {
         user,
       }
     );

@@ -173,6 +173,14 @@ export const changePasswordService = async (
   };
 };
 
+export const getCurrentUserService = async (
+  userId: string
+): Promise<PublicUserType> => {
+  const user = await User.findById(userId);
+
+  return user!.toJSON();
+};
+
 export const tokenRefreshService = async (
   refreshToken: string,
   deviceInfo: string,
