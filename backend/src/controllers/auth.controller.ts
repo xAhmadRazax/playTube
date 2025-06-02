@@ -10,6 +10,8 @@ import {
   changePasswordService,
   tokenRefreshService,
   getCurrentUserService,
+  updateCurrentUserService,
+  updateAvatarUserService,
 } from "../services/auth.service.js";
 import { BlacklistModel } from "../models/Blacklist.model.js";
 import { AppErrorV4 } from "../utils/ApiError.util.js";
@@ -166,6 +168,30 @@ export const getCurrentUser = asyncHandler(
         user,
       }
     );
+  }
+);
+
+export const updateCurrentUser = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const data = req.body;
+
+    const user = await updateCurrentUserService(req.user.id, data);
+
+    ApiResponseV3.sendJSON(res, StatusCodes.OK, "User updated successfully.", {
+      user,
+    });
+  }
+);
+export const updateAvatar = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const files = req?.files as { [key: string]: Express.Multer.File[] };
+    const avatar = files?.avatar?.length > 0 ? files.avatar[0].path : null;
+
+    const user = await updateAvatarUserService(req?.user?.id, avatar as string);
+
+    ApiResponseV3.sendJSON(res, StatusCodes.OK, "Updated avatar successfully", {
+      user,
+    });
   }
 );
 

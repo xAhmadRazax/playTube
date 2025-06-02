@@ -181,6 +181,84 @@ export const getCurrentUserService = async (
   return user!.toJSON();
 };
 
+export const updateCurrentUserService = async (
+  userId: string,
+  data: Record<string, string>
+): Promise<PublicUserType> => {
+  if (data.newPassword || data.currentPassword) {
+    throw new AppErrorV4(
+      StatusCodes.BAD_REQUEST,
+      `Password updates are not allowed via this route. Please use "/changePassword" for password changes.`,
+      {
+        errorCode: "ERR_UPDATE_NON_SENSITIVE_FIELDS_ONLY",
+      }
+    );
+  }
+
+  const sensitiveFields = [
+    "username",
+    "email",
+    "createdAt",
+    "updatedAt",
+    "passwordChangeAt",
+    "passwordResetToken",
+    "passwordResetExpiry",
+    "roles",
+    "refreshTokens",
+  ];
+
+  const allowedFields: Record<string, string> = {};
+  Object.keys(data).forEach((key) => {
+    if (!sensitiveFields.includes(key)) {
+      allowedFields[key] = data[key];
+    }
+  });
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        ...data,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  return user!.toJSON();
+};
+
+export const updateAvatarUserService = async (
+  userId: string,
+  localFile: string
+): Promise<PublicUserType> => {
+  const avatar = await uploadOnCloudinary(localFile);
+  if (!avatar?.url) {
+    throw new AppErrorV4(
+      StatusCodes.INTERNAL_SERVER_ERROR,
+      "Something went wrong while uploading Avatar to cloudinary",
+      {
+        errorCode: "ERR_UPLOADING_CLOUDINARY",
+      }
+    );
+  }
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  return user!.toJSON();
+};
+
 export const tokenRefreshService = async (
   refreshToken: string,
   deviceInfo: string,

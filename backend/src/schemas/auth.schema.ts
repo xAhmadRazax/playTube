@@ -90,6 +90,10 @@ export const changePasswordSchema = zod.object({
     .trim(),
 });
 
+export const updateAvatarSchema = zod.object({
+  avatar: zod.string({ required_error: "Avatar is required." }),
+});
+
 // export const LoginSchema = zod
 //   .object({
 //     email: zod

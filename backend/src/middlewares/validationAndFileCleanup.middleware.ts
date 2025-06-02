@@ -10,7 +10,6 @@ export const validationAndFileCleanupHandler =
       files?.coverImage?.length > 0 ? files.avatar[0].path : null;
 
     try {
-      console.log(avatarLocalPath, coverImageLocalPath);
       schema.parse({ ...req.body, avatar: avatarLocalPath || undefined });
 
       next();
@@ -18,6 +17,41 @@ export const validationAndFileCleanupHandler =
       if (error instanceof ZodError) {
         if (avatarLocalPath) fs.unlinkSync(avatarLocalPath);
         if (coverImageLocalPath) fs.unlinkSync(coverImageLocalPath);
+      }
+      next(error);
+    }
+  };
+export const validationAndFileCleanupHandlerV1 =
+  (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
+    const files = req?.files as { [key: string]: Express.Multer.File[] };
+
+    const fields: Record<string, string> = {};
+    Object.keys(files).forEach((key) => {
+      if (files[key] && files[key]?.length > 0) {
+        fields[key] = files[key][0].path;
+      }
+    });
+
+    try {
+      let dataObj: Record<string, string> = {};
+      if (req.body) {
+        dataObj = {
+          ...dataObj,
+          ...req.body,
+        };
+      }
+      if (fields) {
+        dataObj = {
+          ...dataObj,
+          ...fields,
+        };
+      }
+      schema.parse(dataObj);
+
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        Object.keys(fields).forEach((key) => fs.unlinkSync(fields[key]));
       }
       next(error);
     }
