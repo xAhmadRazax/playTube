@@ -8,6 +8,7 @@ import {
   getCurrentUser,
   updateCurrentUser,
   updateAvatar,
+  updateUserImage,
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import {
@@ -15,10 +16,11 @@ import {
   validationAndFileCleanupHandlerV1,
 } from "../middlewares/validationAndFileCleanup.middleware.js";
 import {
-  changePasswordSchema,
+  ChangePasswordSchema,
   LoginSchema,
   RegisterSchema,
-  updateAvatarSchema,
+  updateCoverImageSchema,
+  UpdateUserImagesSchema,
 } from "../schemas/auth.schema.js";
 import { zodSchemaValidation } from "../middlewares/zodSchemaValidation.middleware.js";
 import { protect } from "../middlewares/auth.middleware.js";
@@ -46,19 +48,34 @@ router
 router.route("/logout").get(protect, logoutUser);
 router
   .route("/change-password")
-  .post(zodSchemaValidation(changePasswordSchema), protect, changePassword);
+  .post(zodSchemaValidation(ChangePasswordSchema), protect, changePassword);
 
 router.route("/me").get(protect, getCurrentUser);
 router.route("/updateMe").post(protect, updateCurrentUser);
-router.route("/updateMedia").post(
+// router.route("/updateAvatar").post(
+//   upload.fields([
+//     {
+//       name: "avatar",
+//       maxCount: 1,
+//     },
+//   ]),
+//   validationAndFileCleanupHandlerV1(UpdateAvatarSchema),
+//   updateAvatar
+// );
+router.route("/updateImage").post(
   upload.fields([
     {
       name: "avatar",
       maxCount: 1,
     },
+    {
+      name: "coverImage",
+      maxCount: 1,
+    },
   ]),
-  validationAndFileCleanupHandlerV1(updateAvatarSchema),
-  updateAvatar
+  validationAndFileCleanupHandlerV1(UpdateUserImagesSchema),
+  protect,
+  updateUserImage
 );
 router.route("/refresh-token").post(refreshAccessToken);
 export { router };

@@ -26,15 +26,15 @@ export const validationAndFileCleanupHandlerV1 =
     const files = req?.files as { [key: string]: Express.Multer.File[] };
 
     const fields: Record<string, string> = {};
-    Object.keys(files).forEach((key) => {
-      if (files[key] && files[key]?.length > 0) {
-        fields[key] = files[key][0].path;
-      }
-    });
 
     try {
+      Object.keys(files || {})?.forEach((key) => {
+        if (files[key] && files[key]?.length > 0) {
+          fields[key] = files[key][0].path;
+        }
+      });
       let dataObj: Record<string, string> = {};
-      if (req.body) {
+      if (req?.body) {
         dataObj = {
           ...dataObj,
           ...req.body,
@@ -46,7 +46,7 @@ export const validationAndFileCleanupHandlerV1 =
           ...fields,
         };
       }
-      schema.parse(dataObj);
+      schema.parse(dataObj || undefined);
 
       next();
     } catch (error) {

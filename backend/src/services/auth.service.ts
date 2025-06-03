@@ -258,7 +258,46 @@ export const updateAvatarUserService = async (
 
   return user!.toJSON();
 };
+export const updateUserImageService = async (
+  userId: string,
+  localFiles: Record<string, string>
+): Promise<PublicUserType> => {
+  const fieldsName: string[] = [];
+  const promiseArr: Promise<any>[] = [];
+  Object.keys(localFiles).forEach((key) => {
+    fieldsName.push(key);
+    promiseArr.push(uploadOnCloudinary(localFiles[key]));
+  });
 
+  const resolvePromises = await Promise.all(promiseArr);
+  const updatedFields: Record<string, string> = {};
+  resolvePromises.forEach((item, index) => {
+    if (!item?.url) {
+      throw new AppErrorV4(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        `Something went wrong while uploading ${fieldsName.at(index)} to cloudinary`,
+        {
+          errorCode: "ERR_UPLOADING_CLOUDINARY",
+        }
+      );
+    }
+    updatedFields[fieldsName[index]] = item.url;
+  });
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        ...updatedFields,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  return user!.toJSON();
+};
 export const tokenRefreshService = async (
   refreshToken: string,
   deviceInfo: string,

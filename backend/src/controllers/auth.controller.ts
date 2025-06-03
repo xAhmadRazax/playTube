@@ -12,6 +12,7 @@ import {
   getCurrentUserService,
   updateCurrentUserService,
   updateAvatarUserService,
+  updateUserImageService,
 } from "../services/auth.service.js";
 import { BlacklistModel } from "../models/Blacklist.model.js";
 import { AppErrorV4 } from "../utils/ApiError.util.js";
@@ -194,7 +195,23 @@ export const updateAvatar = asyncHandler(
     });
   }
 );
+export const updateUserImage = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const files = req?.files as { [key: string]: Express.Multer.File[] };
+    const fields: Record<string, string> = {};
+    Object.keys(files).forEach((key) => {
+      if (files[key].length > 0) {
+        fields[key] = files[key][0]?.path;
+      }
+    });
 
+    const user = await updateUserImageService(req?.user?.id, fields);
+
+    ApiResponseV3.sendJSON(res, StatusCodes.OK, "Updated avatar successfully", {
+      user,
+    });
+  }
+);
 export const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const incomingRefreshToken =
