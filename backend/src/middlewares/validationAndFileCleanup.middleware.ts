@@ -4,26 +4,6 @@ import fs from "fs";
 export const validationAndFileCleanupHandler =
   (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
     const files = req?.files as { [key: string]: Express.Multer.File[] };
-    const avatarLocalPath =
-      files?.avatar?.length > 0 ? files.avatar[0].path : null;
-    const coverImageLocalPath =
-      files?.coverImage?.length > 0 ? files.avatar[0].path : null;
-
-    try {
-      schema.parse({ ...req.body, avatar: avatarLocalPath || undefined });
-
-      next();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        if (avatarLocalPath) fs.unlinkSync(avatarLocalPath);
-        if (coverImageLocalPath) fs.unlinkSync(coverImageLocalPath);
-      }
-      next(error);
-    }
-  };
-export const validationAndFileCleanupHandlerV1 =
-  (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
-    const files = req?.files as { [key: string]: Express.Multer.File[] };
 
     const fields: Record<string, string> = {};
 

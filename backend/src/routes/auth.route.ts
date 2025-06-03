@@ -11,10 +11,7 @@ import {
   updateUserImage,
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import {
-  validationAndFileCleanupHandler,
-  validationAndFileCleanupHandlerV1,
-} from "../middlewares/validationAndFileCleanup.middleware.js";
+import { validationAndFileCleanupHandler } from "../middlewares/validationAndFileCleanup.middleware.js";
 import {
   ChangePasswordSchema,
   LoginSchema,
@@ -73,7 +70,7 @@ router.route("/updateImage").post(
       maxCount: 1,
     },
   ]),
-  validationAndFileCleanupHandlerV1(UpdateUserImagesSchema),
+  validationAndFileCleanupHandler(UpdateUserImagesSchema),
   protect,
   updateUserImage
 );

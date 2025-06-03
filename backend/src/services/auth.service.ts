@@ -1,8 +1,7 @@
 import { StatusCodes } from "http-status-codes";
-import { Request } from "express";
 import { User } from "../models/User.model.js";
 import { PublicUserType, UserDocumentType } from "../types/userModel.type.js";
-import { ApiErrorV1, AppErrorV4 } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/ApiError.util.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.util.js";
 import { LoginUserType, RegisterUserType } from "../schemas/auth.schema.js";
 import {
@@ -58,10 +57,6 @@ export const loginService = async (
   refreshToken: string;
   accessToken: string;
 }> => {
-  //   const user = identifier.include("@")
-  //     ? await User.findOne({ email: identifier })
-  //     : await User.findOne({ username: identifier });
-
   let user = await User.findOne({
     $or: [
       {
@@ -72,22 +67,12 @@ export const loginService = async (
   }).select("+password");
 
   if (!user || !(await user?.isPasswordCorrect?.(password))) {
-    throw new AppErrorV4(
-      StatusCodes.UNAUTHORIZED,
-      "Invalid entered password.",
-      {
-        errorCode: "ERR_INVALID_CREDENTIALS",
-      }
-    );
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid entered password.", {
+      errorCode: "ERR_INVALID_CREDENTIALS",
+    });
   }
   // // generate tokens
   const { accessToken, refreshToken } = generateAccessAndRefreshTokenV1(user);
-  // await user.updateRefreshToken(
-  //   // user.refreshTokens,
-  //   refreshToken,
-  //   device,
-  //   ip
-  // );
 
   await UserSession.create({
     userId: user.id,
@@ -96,7 +81,6 @@ export const loginService = async (
     ipAddress: ip,
   });
 
-  // user.refreshToken = [...user?.refreshToken, refreshToken];
   // Exclude password and refreshToken before returning user
 
   const { password: _password, ...publicUser } = user.toObject();
@@ -108,19 +92,11 @@ export const loginService = async (
   };
 };
 export const logoutService = async (refreshToken: string) => {
-  // const user = await User.findById(id);
-
-  // TODO:FixMe
-  // await user?.updateRefreshToken(user.refreshTokens, refreshToken, true);
-  // await user.
   if (refreshToken) {
     await UserSession.deleteOne({
       refreshToken: refreshToken,
     });
   }
-  // await BlacklistModel.create({
-  //   token: refreshToken,
-  // });
 };
 export const changePasswordService = async (
   userId: string,
@@ -136,23 +112,16 @@ export const changePasswordService = async (
 
   const user = await User.findById(userId).select("+password");
   if (!user || !(await user.isPasswordCorrect(currentPassword))) {
-    throw new AppErrorV4(
-      StatusCodes.UNAUTHORIZED,
-      "Invalid entered password.",
-      {
-        errorCode: "ERR_INVALID_CREDENTIALS",
-      }
-    );
+    throw new AppError(StatusCodes.UNAUTHORIZED, "Invalid entered password.", {
+      errorCode: "ERR_INVALID_CREDENTIALS",
+    });
   }
 
   user.password = newPassword;
   // await user.save();
   const { accessToken, refreshToken } = generateAccessAndRefreshTokenV1(user);
   // updating refresh Token
-  // UserSession.deleteMany({
-  //   userid: user._id,
-  // }),
-  // UserSession.create({ userId: user.id, refreshToken }),
+
   await Promise.all([
     user.save(),
     UserSession.deleteMany({
@@ -186,7 +155,7 @@ export const updateCurrentUserService = async (
   data: Record<string, string>
 ): Promise<PublicUserType> => {
   if (data.newPassword || data.currentPassword) {
-    throw new AppErrorV4(
+    throw new AppError(
       StatusCodes.BAD_REQUEST,
       `Password updates are not allowed via this route. Please use "/changePassword" for password changes.`,
       {
@@ -235,7 +204,7 @@ export const updateAvatarUserService = async (
 ): Promise<PublicUserType> => {
   const avatar = await uploadOnCloudinary(localFile);
   if (!avatar?.url) {
-    throw new AppErrorV4(
+    throw new AppError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       "Something went wrong while uploading Avatar to cloudinary",
       {
@@ -273,7 +242,7 @@ export const updateUserImageService = async (
   const updatedFields: Record<string, string> = {};
   resolvePromises.forEach((item, index) => {
     if (!item?.url) {
-      throw new AppErrorV4(
+      throw new AppError(
         StatusCodes.INTERNAL_SERVER_ERROR,
         `Something went wrong while uploading ${fieldsName.at(index)} to cloudinary`,
         {
@@ -309,7 +278,7 @@ export const tokenRefreshService = async (
 }> => {
   // 1) Check if token exists
   // if (!(await UserSession.findOne({ token: refreshToken  }))) {
-  //   throw new AppErrorV4(
+  //   throw new AppError(
   //     StatusCodes.UNAUTHORIZED,
   //     "Session Expired, please login again.",
   //     {
@@ -325,7 +294,7 @@ export const tokenRefreshService = async (
   // if decoded token incase of invalid or other reason start
   // acting strnage just try to uncommit it
   // if (!decoded) {
-  //   throw new AppErrorV4(
+  //   throw new AppError(
   //     StatusCodes.UNAUTHORIZED,
   //     "Invalid or Expired Token, Please login again.",
   //     {
@@ -351,7 +320,7 @@ export const tokenRefreshService = async (
   if (!token) {
     // 3A) token reused detection (JWT is valid but token is not associated with any user)
     if (user) {
-      throw new AppErrorV4(
+      throw new AppError(
         StatusCodes.FORBIDDEN,
         "Possible token reuse detected. User session has been cleared.",
         {
@@ -362,7 +331,7 @@ export const tokenRefreshService = async (
   }
   // 3B) User doesnt exist any more
   if (!user) {
-    throw new AppErrorV4(
+    throw new AppError(
       StatusCodes.UNAUTHORIZED,
       "Invalid token or user no longer exist.",
       {
@@ -372,7 +341,7 @@ export const tokenRefreshService = async (
   }
   // 4) check if password is changed after jwt is issued
   if (user?.hasPasswordChangedAfterJWTTokenIssued(decoded.iat!)) {
-    throw new AppErrorV4(
+    throw new AppError(
       StatusCodes.UNAUTHORIZED,
       "Session Expired. Please login again to access this resource.",
       {

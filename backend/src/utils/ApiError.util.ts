@@ -1,8 +1,3 @@
-import express from "express";
-
-import { ZodError } from "zod";
-import { ValidationError } from "express-validator";
-
 import { ReasonPhrases, StatusCodes } from "http-status-codes";
 
 /**
@@ -10,7 +5,7 @@ import { ReasonPhrases, StatusCodes } from "http-status-codes";
  * Implements detailed error reporting, operational error distinction, and
  * structured validation error handling.
  */
-export class AppErrorV4 extends Error {
+export class AppError extends Error {
   public readonly statusCode: StatusCodes;
   public readonly isOperational: boolean; // Flag for expected errors (e.g., user input)
   public readonly errorCode: string; // Unique code for client-side handling (optional, but recommended)
@@ -37,8 +32,6 @@ export class AppErrorV4 extends Error {
       errors?: Record<string, string>;
       stack?: string;
       isOperational?: boolean;
-      // errors?: ZodError["issues"];
-      // errors?: ValidationError[];
       context?: Record<string, unknown>;
     } = {}
   ) {
@@ -71,7 +64,7 @@ export class AppErrorV4 extends Error {
     errors?: Record<string, string>,
     context?: Record<string, unknown>
   ) {
-    return new AppErrorV4(StatusCodes.BAD_REQUEST, message, {
+    return new AppError(StatusCodes.BAD_REQUEST, message, {
       errorCode: "ERR_BAD_REQUEST",
       errors,
       context,
@@ -85,7 +78,7 @@ export class AppErrorV4 extends Error {
     message: string = ReasonPhrases.UNAUTHORIZED,
     context?: Record<string, unknown>
   ) {
-    return new AppErrorV4(StatusCodes.UNAUTHORIZED, message, {
+    return new AppError(StatusCodes.UNAUTHORIZED, message, {
       errorCode: "ERR_UNAUTHORIZED",
       context,
     });
@@ -98,7 +91,7 @@ export class AppErrorV4 extends Error {
     message: string = ReasonPhrases.NOT_FOUND,
     context?: Record<string, unknown>
   ) {
-    return new AppErrorV4(StatusCodes.NOT_FOUND, message, {
+    return new AppError(StatusCodes.NOT_FOUND, message, {
       errorCode: "ERR_NOT_FOUND",
       context,
     });
@@ -111,7 +104,7 @@ export class AppErrorV4 extends Error {
     message: string = ReasonPhrases.INTERNAL_SERVER_ERROR,
     context?: Record<string, unknown>
   ) {
-    return new AppErrorV4(StatusCodes.INTERNAL_SERVER_ERROR, message, {
+    return new AppError(StatusCodes.INTERNAL_SERVER_ERROR, message, {
       isOperational: false, // Important:  Internal errors are usually *not* operational
       errorCode: "ERR_INTERNAL_SERVER",
       context,
@@ -146,126 +139,4 @@ export class AppErrorV4 extends Error {
   }
 }
 
-export interface AppErrorType extends AppErrorV4 {}
-
-/**
- * @classdesc Base class for handling API errors.  This class should be
- * extended for specific error types in your application.  It provides a
- * consistent structure for error responses.
- */
-// google gemini
-export class ApiErrorV2 extends Error {
-  public readonly statusCode: number;
-  public readonly message: string;
-  public readonly success: boolean;
-  public readonly errors?: ValidationError[]; // Optional, for validation errors
-
-  /**
-   * @constructor
-   * @param {number} statusCode - The HTTP status code for the error.
-   * @param {string} message - A human-readable error message.
-   * @param {ValidationError[]} [errors] - Optional array of validation errors
-   */
-  constructor(statusCode: number, message: string, errors?: ValidationError[]) {
-    super(message); // Call the parent class constructor
-    this.statusCode = statusCode;
-    this.message = message;
-    this.success = false; // Consistent error indication
-    this.errors = errors;
-
-    // Ensure the name of the error is the class name
-    this.name = this.constructor.name;
-
-    // Optional:  Helps with debugging and logging.  This ensures the stack
-    // trace starts from the point where the error is *created* rather than
-    // where it's *thrown*.  However, be mindful of performance implications
-    // in very high-traffic applications.  You might conditionally enable this
-    // only in development or staging environments.
-    Error.captureStackTrace(this, this.constructor);
-  }
-
-  /**
-   * Converts the error object to a JSON representation.  This is useful
-   * for sending error responses to the client.
-   *
-   * @returns {object} - A JSON object representing the error.
-   */
-  toJson(): object {
-    const errorResponse: {
-      message: string;
-      success: boolean;
-      statusCode: number;
-      errors?: ValidationError[];
-    } = {
-      message: this.message,
-      success: this.success,
-      statusCode: this.statusCode,
-    };
-    if (this.errors) {
-      errorResponse.errors = this.errors;
-    }
-    return errorResponse;
-  }
-}
-
-// chat gpt version
-export class ApiErrorV1 extends Error {
-  public readonly statusCode: number;
-  public readonly isOperational: boolean;
-  public readonly errors: any[];
-  public readonly data: any;
-
-  constructor(
-    message: string = "Something went wrong",
-    statusCode: number = 500,
-    isOperational: boolean = true,
-    errors: any[] = [],
-    data: any = null
-  ) {
-    super(message);
-
-    Object.setPrototypeOf(this, new.target.prototype); // Restore prototype chain
-    this.name = this.constructor.name;
-    this.statusCode = statusCode;
-    this.isOperational = isOperational;
-    this.errors = errors;
-    this.data = data;
-
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-// hatesh chudary version
-export class ApiError extends Error {
-  public readonly statusCode: number;
-  public readonly isOperational: boolean;
-  public readonly errors: any[];
-  public readonly data: any;
-  public readonly success: boolean;
-  public readonly message: string;
-
-  constructor(
-    message: string = "Something went wrong",
-    statusCode: number = 500,
-    isOperational: boolean = true,
-    errors: any[] = [],
-    data: any = null,
-    stack: string = ""
-  ) {
-    super(message);
-
-    this.name = this.constructor.name;
-    this.statusCode = statusCode;
-    this.isOperational = isOperational;
-    this.errors = errors;
-    this.data = data;
-    this.success = false;
-    this.message = message;
-
-    if (stack) {
-      this.stack = stack;
-    } else {
-      Error.captureStackTrace(this, this.constructor);
-    }
-  }
-}
+export interface AppErrorType extends AppError {}

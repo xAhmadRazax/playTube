@@ -14,8 +14,7 @@ import {
   updateAvatarUserService,
   updateUserImageService,
 } from "../services/auth.service.js";
-import { BlacklistModel } from "../models/Blacklist.model.js";
-import { AppErrorV4 } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/ApiError.util.js";
 
 export const registerUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -221,7 +220,7 @@ export const refreshAccessToken = asyncHandler(
         : null);
 
     if (!incomingRefreshToken) {
-      throw new AppErrorV4(
+      throw new AppError(
         StatusCodes.UNAUTHORIZED,
         "Unauthorized access, please login.",
         {

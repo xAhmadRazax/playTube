@@ -2,9 +2,6 @@ import { Schema, model } from "mongoose";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { UserDocumentType, UserModelType } from "../types/userModel.type.js";
-import { verifyAndDecodeJwtToken } from "../utils/jwtHandler.util.js";
-import { AppErrorV4 } from "../utils/ApiError.util.js";
-import { StatusCodes } from "http-status-codes";
 import { UserSession } from "./UserSession.model.js";
 
 const userSchema = new Schema<UserDocumentType, UserModelType>(
