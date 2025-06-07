@@ -253,6 +253,7 @@ export const updateUserImageService = async (
     updatedFields[fieldsName[index]] = item.url;
   });
 
+  // TODO: delete old image
   const user = await User.findByIdAndUpdate(
     userId,
     {

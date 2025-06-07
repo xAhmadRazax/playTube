@@ -182,18 +182,7 @@ export const updateCurrentUser = asyncHandler(
     });
   }
 );
-export const updateAvatar = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const files = req?.files as { [key: string]: Express.Multer.File[] };
-    const avatar = files?.avatar?.length > 0 ? files.avatar[0].path : null;
 
-    const user = await updateAvatarUserService(req?.user?.id, avatar as string);
-
-    ApiResponseV3.sendJSON(res, StatusCodes.OK, "Updated avatar successfully", {
-      user,
-    });
-  }
-);
 export const updateUserImage = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const files = req?.files as { [key: string]: Express.Multer.File[] };
@@ -206,9 +195,14 @@ export const updateUserImage = asyncHandler(
 
     const user = await updateUserImageService(req?.user?.id, fields);
 
-    ApiResponseV3.sendJSON(res, StatusCodes.OK, "Updated avatar successfully", {
-      user,
-    });
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Updated user image successfully",
+      {
+        user,
+      }
+    );
   }
 );
 export const refreshAccessToken = asyncHandler(

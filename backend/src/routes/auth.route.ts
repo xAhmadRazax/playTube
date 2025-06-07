@@ -7,7 +7,6 @@ import {
   changePassword,
   getCurrentUser,
   updateCurrentUser,
-  updateAvatar,
   updateUserImage,
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -49,16 +48,7 @@ router
 
 router.route("/me").get(protect, getCurrentUser);
 router.route("/updateMe").post(protect, updateCurrentUser);
-// router.route("/updateAvatar").post(
-//   upload.fields([
-//     {
-//       name: "avatar",
-//       maxCount: 1,
-//     },
-//   ]),
-//   validationAndFileCleanupHandlerV1(UpdateAvatarSchema),
-//   updateAvatar
-// );
+
 router.route("/updateImage").post(
   upload.fields([
     {
