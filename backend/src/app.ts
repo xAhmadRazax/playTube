@@ -2,7 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import globalErrorHandler from "./middlewares/error.middleware.js";
 import { StatusCodes, ReasonPhrases } from "http-status-codes";
-import { AppErrorV4 } from "./utils/ApiError.util.js";
+import { AppError } from "./utils/ApiError.util.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
@@ -42,7 +42,7 @@ app.use((req, res, next) => {
     ReasonPhrases.NOT_FOUND
   );
   next(
-    new AppErrorV4(
+    new AppError(
       StatusCodes.NOT_FOUND,
       `${req.originalUrl} Route ${ReasonPhrases.NOT_FOUND} on this server`
     )

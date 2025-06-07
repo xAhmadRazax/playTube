@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { StatusCodes, ReasonPhrases } from "http-status-codes";
-import { AppErrorV4, AppErrorType } from "../utils/ApiError.util.js";
+import { AppError, AppErrorType } from "../utils/ApiError.util.js";
 import mongoose from "mongoose";
 // interface NormalizedError {
 //   statusCode: number;
@@ -15,7 +15,7 @@ import mongoose from "mongoose";
 //   toJSON: () => {};
 // }
 
-function handleZodError(err: ZodError): AppErrorV4 {
+function handleZodError(err: ZodError): AppError {
   let errorMessage = "";
   const formattedErrors = (err as ZodError).issues.reduce(
     (acc, issue) => {
@@ -39,7 +39,7 @@ function handleZodError(err: ZodError): AppErrorV4 {
   );
 
   console.log(err);
-  return new AppErrorV4(
+  return new AppError(
     StatusCodes?.BAD_REQUEST,
     errorMessage.trim() || "Input Validation failed.",
     {
@@ -50,8 +50,8 @@ function handleZodError(err: ZodError): AppErrorV4 {
   );
 }
 
-function handleJWTError(err: Error): AppErrorV4 {
-  return new AppErrorV4(
+function handleJWTError(err: Error): AppError {
+  return new AppError(
     StatusCodes.UNAUTHORIZED,
     process.env.NODE_ENV === "production"
       ? "Unauthorized access. Please login."
@@ -63,8 +63,8 @@ function handleJWTError(err: Error): AppErrorV4 {
   );
 }
 
-function handleJWTExpiredError(err: Error): AppErrorV4 {
-  return new AppErrorV4(
+function handleJWTExpiredError(err: Error): AppError {
+  return new AppError(
     StatusCodes.UNAUTHORIZED,
     process.env.NODE_ENV === "production"
       ? "Unauthorized access. Please login."
@@ -75,17 +75,17 @@ function handleJWTExpiredError(err: Error): AppErrorV4 {
     }
   );
 }
-function handleJWTNotBeforeError(err: Error): AppErrorV4 {
-  return new AppErrorV4(StatusCodes.UNAUTHORIZED, "Token not active yet.", {
+function handleJWTNotBeforeError(err: Error): AppError {
+  return new AppError(StatusCodes.UNAUTHORIZED, "Token not active yet.", {
     errorCode: `ERR_JWT_NOT_BEFORE`,
     stack: err?.stack,
   });
 }
 
-function handleDuplicateFieldsErrorDB(err: unknown): AppErrorV4 {
+function handleDuplicateFieldsErrorDB(err: unknown): AppError {
   const keyValue = (err as any).keyValue!;
   const [field, value] = Object.entries(keyValue)[0];
-  return new AppErrorV4(
+  return new AppError(
     StatusCodes.CONFLICT,
     `${field} '${value}' already exist. Please choose another.`,
     {
@@ -99,7 +99,7 @@ function handleDuplicateFieldsErrorDB(err: unknown): AppErrorV4 {
 
 function handleValidationErrorDb(
   err: mongoose.Error.ValidationError
-): AppErrorV4 {
+): AppError {
   let errorMessage = "";
   const errorsFields = Object.keys(err.errors);
   const errors = errorsFields.reduce(
@@ -111,7 +111,7 @@ function handleValidationErrorDb(
     },
     {} as Record<string, string>
   );
-  return new AppErrorV4(
+  return new AppError(
     StatusCodes.BAD_REQUEST,
     errorMessage.trim() || "Input Validation failed",
     {
@@ -121,10 +121,10 @@ function handleValidationErrorDb(
   );
 }
 
-function handleCastErrorDB(err: mongoose.Error.CastError): AppErrorV4 {
+function handleCastErrorDB(err: mongoose.Error.CastError): AppError {
   const field = err instanceof mongoose.Error.CastError && err.path!;
   const value = err instanceof mongoose.Error.CastError && err.value;
-  return new AppErrorV4(
+  return new AppError(
     StatusCodes.BAD_REQUEST,
     `Invalid value '${value}' for ${field} provided.`,
     {
@@ -196,17 +196,17 @@ function normalizedErrorHandler(err: unknown): AppErrorType {
   if (err instanceof mongoose.Error.CastError) {
     return handleCastErrorDB(err);
   }
-  if (err instanceof AppErrorV4) {
+  if (err instanceof AppError) {
     return err;
   }
-  return new AppErrorV4(
+  return new AppError(
     StatusCodes.INTERNAL_SERVER_ERROR,
     "Hiya! nephew u have to still write more code move ur ass"
   );
   // console.log(
   //   "hiya! nephew u have to write the code don't be a johnny oliver of coding..."
   // );
-  // return new AppErrorV4(
+  // return new AppError(
   //   200,
   //   "Hiya! nephew u have to still write more code move ur ass"
   // );
