@@ -1,4 +1,3 @@
-// import { Request, Response } from "express";
 // import { asyncHandler } from "../utils/asyncHandler.util.js";
 // import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
 // import { UserSchema } from "../schemas/user.schema.js";
@@ -56,3 +55,61 @@
 //     );
 //   }
 // );
+import { Request, Response,NextFunction  } from "express";
+import {
+  getMeService,
+  updateMeService,
+  updateAvatarUserService,
+  updateMyImagesService ,
+} from "../services/users.service.js";
+import { asyncHandler } from "../utils/asyncHandler.util.js";
+import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
+import { StatusCodes } from "http-status-codes";
+
+export const getMe = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await getMeService(req.user._id);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Current user fetched successfully.",
+      {
+        user,
+      }
+    );
+  }
+);
+export const updateMe = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const data = req.body;
+
+    const user = await updateMeService(req.user.id, data);
+
+    ApiResponseV3.sendJSON(res, StatusCodes.OK, "User updated successfully.", {
+      user,
+    });
+  }
+);
+export const updateMyImages = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const files = req?.files as { [key: string]: Express.Multer.File[] };
+    const fields: Record<string, string> = {};
+    Object.keys(files).forEach((key) => {
+      if (files[key].length > 0) {
+        fields[key] = files[key][0]?.path;
+      }
+    });
+
+    const user = await updateMyImagesService (req?.user?.id, fields);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Updated user image successfully",
+      {
+        user,
+      }
+    );
+  }
+);

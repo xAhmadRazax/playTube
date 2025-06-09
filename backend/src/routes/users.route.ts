@@ -1,0 +1,30 @@
+import {Router} from "express"; 
+import { protect } from "../middlewares/auth.middleware.js";
+import { getMe,updateMe,updateMyImages} from "../controllers/users.controller.js";
+import { upload } from "../middlewares/multer.middleware.js";
+import { validationAndFileCleanupHandler } from "../middlewares/validationAndFileCleanup.middleware.js";
+import { UpdateUserImagesSchema } from "../schemas/auth.schema.js";
+
+
+
+const router = Router();
+router.route("/me").get(protect, getMe);
+router.route("/updateMe").post(protect, updateMe);
+router.route("/updateMyImage").post(
+  upload.fields([
+    {
+      name: "avatar",
+      maxCount: 1,
+    },
+    {
+      name: "coverImage",
+      maxCount: 1,
+    },
+  ]),
+  validationAndFileCleanupHandler(UpdateUserImagesSchema),
+  protect,
+  updateMyImages
+);
+
+
+export { router };

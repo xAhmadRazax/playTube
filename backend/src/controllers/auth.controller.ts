@@ -9,10 +9,7 @@ import {
   logoutService,
   changePasswordService,
   tokenRefreshService,
-  getCurrentUserService,
-  updateCurrentUserService,
-  updateAvatarUserService,
-  updateUserImageService,
+
 } from "../services/auth.service.js";
 import { AppError } from "../utils/ApiError.util.js";
 
@@ -156,55 +153,7 @@ export const changePassword = asyncHandler(
   }
 );
 
-export const getCurrentUser = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const user = await getCurrentUserService(req.user._id);
 
-    ApiResponseV3.sendJSON(
-      res,
-      StatusCodes.OK,
-      "Current user fetched successfully.",
-      {
-        user,
-      }
-    );
-  }
-);
-
-export const updateCurrentUser = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const data = req.body;
-
-    const user = await updateCurrentUserService(req.user.id, data);
-
-    ApiResponseV3.sendJSON(res, StatusCodes.OK, "User updated successfully.", {
-      user,
-    });
-  }
-);
-
-export const updateUserImage = asyncHandler(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const files = req?.files as { [key: string]: Express.Multer.File[] };
-    const fields: Record<string, string> = {};
-    Object.keys(files).forEach((key) => {
-      if (files[key].length > 0) {
-        fields[key] = files[key][0]?.path;
-      }
-    });
-
-    const user = await updateUserImageService(req?.user?.id, fields);
-
-    ApiResponseV3.sendJSON(
-      res,
-      StatusCodes.OK,
-      "Updated user image successfully",
-      {
-        user,
-      }
-    );
-  }
-);
 export const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const incomingRefreshToken =

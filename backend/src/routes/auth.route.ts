@@ -5,9 +5,7 @@ import {
   logoutUser,
   refreshAccessToken,
   changePassword,
-  getCurrentUser,
-  updateCurrentUser,
-  updateUserImage,
+
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { validationAndFileCleanupHandler } from "../middlewares/validationAndFileCleanup.middleware.js";
@@ -46,23 +44,6 @@ router
   .route("/change-password")
   .post(zodSchemaValidation(ChangePasswordSchema), protect, changePassword);
 
-router.route("/me").get(protect, getCurrentUser);
-router.route("/updateMe").post(protect, updateCurrentUser);
 
-router.route("/updateImage").post(
-  upload.fields([
-    {
-      name: "avatar",
-      maxCount: 1,
-    },
-    {
-      name: "coverImage",
-      maxCount: 1,
-    },
-  ]),
-  validationAndFileCleanupHandler(UpdateUserImagesSchema),
-  protect,
-  updateUserImage
-);
 router.route("/refresh-token").post(refreshAccessToken);
 export { router };
