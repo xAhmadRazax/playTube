@@ -62,11 +62,14 @@ import {
   updateAvatarUserService,
   updateMyImagesService,
   getUserChannelProfileService,
+  getUserWatchHistoryService,
 } from "../services/users.service.js";
 import { asyncHandler } from "../utils/asyncHandler.util.js";
 import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
 import { StatusCodes } from "http-status-codes";
 import { AppError } from "../utils/ApiError.util.js";
+import { User } from "../models/User.model.js";
+import mongoose from "mongoose";
 
 export const getMe = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -125,6 +128,18 @@ export const getUserChannelProfile = asyncHandler(
       StatusCodes.OK,
       "Channel profile fetched successfully.",
       { channel }
+    );
+  }
+);
+export const getUserWatchHistory = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = await getUserWatchHistoryService(req?.user?._id);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "User watch history fetched successfully.",
+      { user: user?.at(0)?.watchHistory }
     );
   }
 );

@@ -3,6 +3,7 @@ import { User } from "../models/User.model.js";
 import { PublicUserType } from "../types/userModel.type.js";
 import { AppError } from "../utils/ApiError.util.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.util.js";
+import { Types } from "mongoose";
 
 export const getMeService = async (userId: string): Promise<PublicUserType> => {
   const user = await User.findById(userId);
@@ -146,7 +147,7 @@ export const getUserChannelProfileService = async (
 
     {
       $lookup: {
-        from: "Subscription",
+        from: "subscriptions",
         localField: "_id",
         foreignField: "channel",
         as: "subscribers",
@@ -154,7 +155,7 @@ export const getUserChannelProfileService = async (
     },
     {
       $lookup: {
-        from: "Subscription",
+        from: "subscriptions",
         localField: "_id",
         foreignField: "subscriber",
         as: "subscribedTo",
@@ -194,4 +195,47 @@ export const getUserChannelProfileService = async (
   }
 
   return channel;
+};
+
+export const getUserWatchHistoryService = async (userId: string) => {
+  const user = await User.aggregate([
+    {
+      $match: { _id: new Types.ObjectId(String(userId)) },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: { $first: "$owner" },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  return user;
 };
