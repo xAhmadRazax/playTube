@@ -4,9 +4,7 @@ import { PublicUserType } from "../types/userModel.type.js";
 import { AppError } from "../utils/ApiError.util.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.util.js";
 
-export const getMeService = async (
-  userId: string
-): Promise<PublicUserType> => {
+export const getMeService = async (userId: string): Promise<PublicUserType> => {
   const user = await User.findById(userId);
 
   return user!.toJSON();
@@ -129,4 +127,71 @@ export const updateMyImagesService = async (
   );
 
   return user!.toJSON();
+};
+
+export const getUserChannelProfileService = async (
+  username: string,
+  userId: string
+): Promise<any[]> => {
+  if (!username?.trim()) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Username is required.", {
+      errorCode: "ERR_BAD_REQ",
+    });
+  }
+
+  const channel = await User.aggregate([
+    {
+      $match: { username: username?.toLowerCase() },
+    },
+
+    {
+      $lookup: {
+        from: "Subscription",
+        localField: "_id",
+        foreignField: "channel",
+        as: "subscribers",
+      },
+    },
+    {
+      $lookup: {
+        from: "Subscription",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        subscribersCount: { $size: "$subscribers" },
+        subscribedToCount: { $size: "$subscribedTo" },
+        isSubscribed: {
+          $cond: {
+            if: { $in: [userId, "subscribers.subscriber"] },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        fullName: 1,
+        username: 1,
+        subscribersCount: 1,
+        subscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1,
+      },
+    },
+  ]);
+
+  if (!channel?.length) {
+    throw new AppError(StatusCodes.NOT_FOUND, "Channel not found.", {
+      errorCode: "ERR_CHANNEL_NOT_FOUND",
+    });
+  }
+
+  return channel;
 };

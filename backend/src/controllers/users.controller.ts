@@ -55,16 +55,18 @@
 //     );
 //   }
 // );
-import { Request, Response,NextFunction  } from "express";
+import { Request, Response, NextFunction } from "express";
 import {
   getMeService,
   updateMeService,
   updateAvatarUserService,
-  updateMyImagesService ,
+  updateMyImagesService,
+  getUserChannelProfileService,
 } from "../services/users.service.js";
 import { asyncHandler } from "../utils/asyncHandler.util.js";
 import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
 import { StatusCodes } from "http-status-codes";
+import { AppError } from "../utils/ApiError.util.js";
 
 export const getMe = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -101,7 +103,7 @@ export const updateMyImages = asyncHandler(
       }
     });
 
-    const user = await updateMyImagesService (req?.user?.id, fields);
+    const user = await updateMyImagesService(req?.user?.id, fields);
 
     ApiResponseV3.sendJSON(
       res,
@@ -110,6 +112,19 @@ export const updateMyImages = asyncHandler(
       {
         user,
       }
+    );
+  }
+);
+export const getUserChannelProfile = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { username } = req.params;
+    const channel = await getUserChannelProfileService(username, req?.user?.id);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Channel profile fetched successfully.",
+      { channel }
     );
   }
 );
