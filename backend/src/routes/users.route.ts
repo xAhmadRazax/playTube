@@ -29,7 +29,7 @@ router.route("/updateMyImage").post(
   validationAndFileCleanupHandler(UpdateUserImagesSchema),
   updateMyImages
 );
-router.route("/ChannelProfile/:username").get(protect, getUserChannelProfile);
+router.route("/channel/:username").get(protect, getUserChannelProfile);
 router.route("/history").get(protect, getUserWatchHistory);
 
 export { router };
