@@ -1,30 +1,10 @@
-import { v2 as cloudinary } from "cloudinary";
+import {
+  v2 as cloudinary,
+  UploadApiOptions,
+  UploadApiResponse,
+} from "cloudinary";
 import fs from "fs/promises";
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-export const uploadOnCloudinary = async (localFilePath: string) => {
-  try {
-    if (!localFilePath) {
-      throw new Error("localFilePath is required");
-    }
-    const response = await cloudinary.uploader.upload(localFilePath, {
-      resource_type: "auto",
-    });
-    // console.log("File has been upload to cloudinary", response);
-    return response;
-  } catch (error) {
-    console.log(error);
-    // remove the temporary file as uploader operation got failed
-    return null;
-  } finally {
-    await fs.unlink(localFilePath);
-  }
-};
 class CloudinaryFileUploader {
   constructor() {
     cloudinary.config({
@@ -34,24 +14,36 @@ class CloudinaryFileUploader {
     });
   }
 
-  uploadImage = async (localFilePath: string, options = {}) => {
+  uploadImage = async (
+    localFilePath: string,
+    options: UploadApiOptions
+  ): Promise<UploadApiResponse> => {
     try {
       if (!localFilePath) {
         throw new Error("localFilePath is required");
       }
-      const response = await cloudinary.uploader.upload(localFilePath, options);
+      const response = await cloudinary.uploader.upload(localFilePath, {
+        resource_type: "auto",
+        ...options,
+        folder: options?.folder ? `playTube/${options.folder}` : "playTube", // default folder
+      });
 
       return response;
     } catch (error) {
       // remove the temporary file as uploader operation got failed
-      await fs.unlink(localFilePath);
+
       console.error("Cloudinary Upload Error:", (error as Error).message);
       throw error;
+    } finally {
+      await fs.unlink(localFilePath);
     }
   };
-  async deleteImage(publicId: string) {
+  async deleteImage(publicId: string, options = {}) {
     try {
-      const result = await cloudinary.uploader.destroy(publicId);
+      const result = await cloudinary.uploader.destroy(publicId, {
+        invalidate: true,
+        ...options,
+      });
       return result;
     } catch (error) {
       console.error("Cloudinary Deletion Error:", (error as Error).message);
@@ -73,3 +65,5 @@ class CloudinaryFileUploader {
     }
   }
 }
+
+export const cloudinaryService = new CloudinaryFileUploader();

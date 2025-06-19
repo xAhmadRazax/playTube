@@ -2,7 +2,6 @@ import { StatusCodes } from "http-status-codes";
 import { User } from "../models/User.model.js";
 import { PublicUserType, UserDocumentType } from "../types/userModel.type.js";
 import { AppError } from "../utils/ApiError.util.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.util.js";
 import { LoginUserType, RegisterUserType } from "../schemas/auth.schema.js";
 import {
   generateAccessAndRefreshTokenV1,
@@ -10,6 +9,7 @@ import {
 } from "../utils/jwtHandler.util.js";
 import { BlacklistModel } from "../models/Blacklist.model.js";
 import { UserSession } from "../models/UserSession.model.js";
+import { cloudinaryService } from "./cloudinary.service.js";
 
 export const registerService = async (
   // req: Request,
@@ -34,10 +34,16 @@ export const registerService = async (
     coverImage: coverImageLocalPath || null,
   });
   //   uploading file to cloudinary
-  const avatar = await uploadOnCloudinary(avatarLocalPath!);
+  // const avatar = await uploadOnCloudinary(avatarLocalPath!,username,"profile");
+  const avatar = await cloudinaryService.uploadImage(avatarLocalPath, {
+    folder: `profile/${username}`,
+  });
+
   let coverImage;
   if (coverImageLocalPath) {
-    coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    coverImage = await cloudinaryService.uploadImage(coverImageLocalPath, {
+      folder: `profile/${username}`,
+    });
   }
   //  changing localPath to cloudinary
   user.avatar = avatar?.url || undefined;
@@ -141,7 +147,6 @@ export const changePasswordService = async (
     user: user.toJSON(),
   };
 };
-
 
 export const tokenRefreshService = async (
   refreshToken: string,

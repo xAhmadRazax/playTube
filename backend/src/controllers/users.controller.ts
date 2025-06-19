@@ -70,6 +70,7 @@ import { StatusCodes } from "http-status-codes";
 import { AppError } from "../utils/ApiError.util.js";
 import { User } from "../models/User.model.js";
 import mongoose from "mongoose";
+import { file } from "zod/v4";
 
 export const getMe = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -99,14 +100,24 @@ export const updateMe = asyncHandler(
 export const updateMyImages = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const files = req?.files as { [key: string]: Express.Multer.File[] };
-    const fields: Record<string, string> = {};
-    Object.keys(files).forEach((key) => {
-      if (files[key].length > 0) {
-        fields[key] = files[key][0]?.path;
-      }
-    });
+    // const fields: Record<string, string> = {};
+    // Object.keys(files).forEach((key) => {
+    //   if (files[key].length > 0) {
+    //     fields[key] = files[key][0]?.path;
+    //   }
+    // });
 
-    const user = await updateMyImagesService(req?.user?.id, fields);
+    const fields: { avatarLocalPath?: string; coverImageLocalPath?: string } =
+      {};
+
+    if (files?.avatar?.length > 0) {
+      fields.avatarLocalPath = files?.avatar[0]?.path;
+    }
+    if (files?.coverImage?.length > 0) {
+      fields.coverImageLocalPath = files?.coverImage[0]?.path;
+    }
+
+    const user = await updateMyImagesService(req?.user, fields);
 
     ApiResponseV3.sendJSON(
       res,

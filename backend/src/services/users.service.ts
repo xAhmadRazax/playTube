@@ -1,9 +1,9 @@
 import { StatusCodes } from "http-status-codes";
 import { User } from "../models/User.model.js";
-import { PublicUserType } from "../types/userModel.type.js";
+import { PublicUserType, UserDocumentType } from "../types/userModel.type.js";
 import { AppError } from "../utils/ApiError.util.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.util.js";
 import { Types } from "mongoose";
+import { cloudinaryService } from "./cloudinary.service.js";
 
 export const getMeService = async (userId: string): Promise<PublicUserType> => {
   const user = await User.findById(userId);
@@ -60,10 +60,13 @@ export const updateMeService = async (
 };
 
 export const updateAvatarUserService = async (
-  userId: string,
+  { userId, username }: { userId: string; username: string },
   localFile: string
 ): Promise<PublicUserType> => {
-  const avatar = await uploadOnCloudinary(localFile);
+  // const avatar = await uploadOnCloudinary(localFile,username, "profile");
+  const avatar = await cloudinaryService.uploadImage(localFile, {
+    folder: `profile/${username}`,
+  });
   if (!avatar?.url) {
     throw new AppError(
       StatusCodes.INTERNAL_SERVER_ERROR,
@@ -89,34 +92,49 @@ export const updateAvatarUserService = async (
   return user!.toJSON();
 };
 export const updateMyImagesService = async (
-  userId: string,
-  localFiles: Record<string, string>
+  user: UserDocumentType,
+  localFiles: { avatarLocalPath?: string; coverImageLocalPath?: string }
 ): Promise<PublicUserType> => {
   const fieldsName: string[] = [];
-  const promiseArr: Promise<any>[] = [];
-  Object.keys(localFiles).forEach((key) => {
-    fieldsName.push(key);
-    promiseArr.push(uploadOnCloudinary(localFiles[key]));
-  });
+  const cloudinaryUploaderArr: Promise<any>[] = [];
+  const cloudinaryDeleteArr: Promise<string>[] = [];
 
-  const resolvePromises = await Promise.all(promiseArr);
-  const updatedFields: Record<string, string> = {};
-  resolvePromises.forEach((item, index) => {
-    if (!item?.url) {
-      throw new AppError(
-        StatusCodes.INTERNAL_SERVER_ERROR,
-        `Something went wrong while uploading ${fieldsName.at(index)} to cloudinary`,
-        {
-          errorCode: "ERR_UPLOADING_CLOUDINARY",
-        }
+  Object.entries(localFiles).forEach(([key, item]) => {
+    const fieldName = key.split("LocalPath")[0];
+
+    if (fieldName in user && user[fieldName as keyof typeof user]) {
+      cloudinaryDeleteArr.push(
+        cloudinaryService.deleteImage(
+          "playTube" +
+            user[fieldName as keyof typeof user]
+              .split("/playTube")[1]
+              .split(".")[0],
+          {
+            invalidate: true,
+          }
+        )
       );
     }
-    updatedFields[fieldsName[index]] = item.url;
+
+    fieldsName.push(fieldName);
+    cloudinaryUploaderArr.push(
+      cloudinaryService.uploadImage(item, {
+        folder: `profile/${user.username}`,
+      })
+    );
   });
 
-  // TODO: delete old image
-  const user = await User.findByIdAndUpdate(
-    userId,
+  const resolvePromises = await Promise.all(cloudinaryUploaderArr);
+  // modifying data to the expected format to store in database
+  const updatedFields: Record<string, string> = {};
+
+  fieldsName.forEach((key, index) => {
+    updatedFields[key] = resolvePromises[index]?.url;
+  });
+
+  console.log(updatedFields, "ipdated");
+  const updatedUser = await User.findByIdAndUpdate(
+    user?.id,
     {
       $set: {
         ...updatedFields,
@@ -127,7 +145,11 @@ export const updateMyImagesService = async (
     }
   );
 
-  return user!.toJSON();
+  const deleteRes = await Promise.all(cloudinaryDeleteArr);
+
+  console.log("deleteRes", deleteRes);
+  return updatedUser!.toJSON();
+  //  do something to makesure this handles all types of images relreated to user not videos...
 };
 
 export const getUserChannelProfileService = async (
