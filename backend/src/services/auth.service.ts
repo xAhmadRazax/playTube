@@ -35,14 +35,14 @@ export const registerService = async (
   });
   //   uploading file to cloudinary
   // const avatar = await uploadOnCloudinary(avatarLocalPath!,username,"profile");
-  const avatar = await cloudinaryService.uploadImage(avatarLocalPath, {
-    folder: `profile/${username}`,
+  const avatar = await cloudinaryService.uploadMedia(avatarLocalPath, {
+    folder: `profile/${user.id}`,
   });
 
   let coverImage;
   if (coverImageLocalPath) {
-    coverImage = await cloudinaryService.uploadImage(coverImageLocalPath, {
-      folder: `profile/${username}`,
+    coverImage = await cloudinaryService.uploadMedia(coverImageLocalPath, {
+      folder: `profile/${user.id}`,
     });
   }
   //  changing localPath to cloudinary

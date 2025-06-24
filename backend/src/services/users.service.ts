@@ -64,7 +64,7 @@ export const updateAvatarUserService = async (
   localFile: string
 ): Promise<PublicUserType> => {
   // const avatar = await uploadOnCloudinary(localFile,username, "profile");
-  const avatar = await cloudinaryService.uploadImage(localFile, {
+  const avatar = await cloudinaryService.uploadMedia(localFile, {
     folder: `profile/${username}`,
   });
   if (!avatar?.url) {
@@ -104,7 +104,7 @@ export const updateMyImagesService = async (
 
     if (fieldName in user && user[fieldName as keyof typeof user]) {
       cloudinaryDeleteArr.push(
-        cloudinaryService.deleteImage(
+        cloudinaryService.deleteMedia(
           "playTube" +
             user[fieldName as keyof typeof user]
               .split("/playTube")[1]
@@ -118,8 +118,8 @@ export const updateMyImagesService = async (
 
     fieldsName.push(fieldName);
     cloudinaryUploaderArr.push(
-      cloudinaryService.uploadImage(item, {
-        folder: `profile/${user.username}`,
+      cloudinaryService.uploadMedia(item, {
+        folder: `${user.id}/profile`,
       })
     );
   });

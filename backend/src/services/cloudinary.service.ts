@@ -14,7 +14,7 @@ class CloudinaryFileUploader {
     });
   }
 
-  uploadImage = async (
+  uploadMedia = async (
     localFilePath: string,
     options: UploadApiOptions
   ): Promise<UploadApiResponse> => {
@@ -38,7 +38,30 @@ class CloudinaryFileUploader {
       await fs.unlink(localFilePath);
     }
   };
-  async deleteImage(publicId: string, options = {}) {
+  uploadLargeMedia = async (
+    localFilePath: string,
+    options: UploadApiOptions
+  ): Promise<UploadApiResponse> => {
+    try {
+      if (!localFilePath) {
+        throw new Error("localFilePath is required");
+      }
+
+      const response = await this.promisifiedUploadLargeMedia(localFilePath, {
+        resource_type: "video",
+        chunk_size: 6000000,
+        folder: options?.folder ? `playTube/${options.folder}` : "playTube",
+      });
+
+      return response;
+    } catch (error) {
+      throw error;
+    } finally {
+      await fs.unlink(localFilePath);
+    }
+  };
+
+  async deleteMedia(publicId: string, options = {}) {
     try {
       const result = await cloudinary.uploader.destroy(publicId, {
         invalidate: true,
@@ -64,6 +87,29 @@ class CloudinaryFileUploader {
       throw error;
     }
   }
+
+  private promisifiedUploadLargeMedia = async (
+    localFilePath: string,
+    options: UploadApiOptions
+  ): Promise<UploadApiResponse> => {
+    if (!localFilePath) {
+      throw new Error("localFilePath is required");
+    }
+
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_large(
+        localFilePath,
+
+        options,
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(result as UploadApiResponse);
+        }
+      );
+    });
+  };
 }
 
 export const cloudinaryService = new CloudinaryFileUploader();
