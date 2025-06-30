@@ -2,7 +2,7 @@ import express from "express";
 import morgan from "morgan";
 import globalErrorHandler from "./middlewares/error.middleware.js";
 import { StatusCodes, ReasonPhrases } from "http-status-codes";
-import { AppError } from "./utils/ApiError.util.js";
+import { AppError } from "./utils/apiError.util.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
@@ -19,6 +19,9 @@ app.use(
     credentials: true,
   })
 );
+
+// setting query parse
+app.set("query parser", "extended");
 
 // Allow our app to parse incoming JSON data in request body (up to 64kb)
 app.use(express.json({ limit: "64kb" }));
@@ -38,8 +41,6 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 
 app.use("/api/v1/videos", videoRouter);
-
-
 
 app.use((req, res, next) => {
   console.log(

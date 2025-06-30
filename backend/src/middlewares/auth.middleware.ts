@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "../utils/asyncHandler.util.js";
-import { AppError } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/apiError.util.js";
 import { StatusCodes } from "http-status-codes";
 import { verifyAndDecodeJwtToken } from "../utils/jwtHandler.util.js";
-import { User } from "../models/User.model.js";
+import { User } from "../models/user.model.js";
 
 export const protect = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {

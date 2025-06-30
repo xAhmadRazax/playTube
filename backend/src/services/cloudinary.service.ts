@@ -2,6 +2,7 @@ import {
   v2 as cloudinary,
   UploadApiOptions,
   UploadApiResponse,
+  DeleteApiResponse,
 } from "cloudinary";
 import fs from "fs/promises";
 
@@ -61,12 +62,18 @@ class CloudinaryFileUploader {
     }
   };
 
-  async deleteMedia(publicId: string, options = {}) {
+  async deleteMedia(
+    publicId: string,
+    options = {}
+  ): Promise<DeleteApiResponse> {
     try {
-      const result = await cloudinary.uploader.destroy(publicId, {
-        invalidate: true,
-        ...options,
-      });
+      const result = await cloudinary.uploader.destroy(
+        "playStore" + publicId.split("/playTube")[1].split(".")[0],
+        {
+          invalidate: true,
+          ...options,
+        }
+      );
       return result;
     } catch (error) {
       console.error("Cloudinary Deletion Error:", (error as Error).message);

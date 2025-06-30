@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { StatusCodes, ReasonPhrases } from "http-status-codes";
-import { AppError, AppErrorType } from "../utils/ApiError.util.js";
+import { AppError, AppErrorType } from "../utils/apiError.util.js";
 import mongoose from "mongoose";
 // interface NormalizedError {
 //   statusCode: number;

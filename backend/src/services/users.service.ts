@@ -1,9 +1,10 @@
 import { StatusCodes } from "http-status-codes";
-import { User } from "../models/User.model.js";
+import { User } from "../models/user.model.js";
 import { PublicUserType, UserDocumentType } from "../types/userModel.type.js";
-import { AppError } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/apiError.util.js";
 import { Types } from "mongoose";
 import { cloudinaryService } from "./cloudinary.service.js";
+import { DeleteApiResponse, UploadApiResponse } from "cloudinary";
 
 export const getMeService = async (userId: string): Promise<PublicUserType> => {
   const user = await User.findById(userId);
@@ -96,23 +97,17 @@ export const updateMyImagesService = async (
   localFiles: { avatarLocalPath?: string; coverImageLocalPath?: string }
 ): Promise<PublicUserType> => {
   const fieldsName: string[] = [];
-  const cloudinaryUploaderArr: Promise<any>[] = [];
-  const cloudinaryDeleteArr: Promise<string>[] = [];
+  const cloudinaryUploaderArr: Promise<UploadApiResponse>[] = [];
+  const cloudinaryDeleteArr: Promise<DeleteApiResponse>[] = [];
 
   Object.entries(localFiles).forEach(([key, item]) => {
     const fieldName = key.split("LocalPath")[0];
 
     if (fieldName in user && user[fieldName as keyof typeof user]) {
       cloudinaryDeleteArr.push(
-        cloudinaryService.deleteMedia(
-          "playTube" +
-            user[fieldName as keyof typeof user]
-              .split("/playTube")[1]
-              .split(".")[0],
-          {
-            invalidate: true,
-          }
-        )
+        cloudinaryService.deleteMedia(user[fieldName as keyof typeof user], {
+          invalidate: true,
+        })
       );
     }
 

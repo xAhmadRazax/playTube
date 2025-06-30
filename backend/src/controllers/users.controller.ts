@@ -65,10 +65,10 @@ import {
   getUserWatchHistoryService,
 } from "../services/users.service.js";
 import { asyncHandler } from "../utils/asyncHandler.util.js";
-import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
+import { ApiResponseV3 } from "../utils/apiResponse.util.js";
 import { StatusCodes } from "http-status-codes";
-import { AppError } from "../utils/ApiError.util.js";
-import { User } from "../models/User.model.js";
+import { AppError } from "../utils/apiError.util.js";
+import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 import { file } from "zod/v4";
 

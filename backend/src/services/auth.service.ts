@@ -1,14 +1,14 @@
 import { StatusCodes } from "http-status-codes";
-import { User } from "../models/User.model.js";
+import { User } from "../models/user.model.js";
 import { PublicUserType, UserDocumentType } from "../types/userModel.type.js";
-import { AppError } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/apiError.util.js";
 import { LoginUserType, RegisterUserType } from "../schemas/auth.schema.js";
 import {
   generateAccessAndRefreshTokenV1,
   verifyAndDecodeJwtToken,
 } from "../utils/jwtHandler.util.js";
-import { BlacklistModel } from "../models/Blacklist.model.js";
-import { UserSession } from "../models/UserSession.model.js";
+import { BlacklistModel } from "../models/blacklist.model.js";
+import { UserSession } from "../models/userSession.model.js";
 import { cloudinaryService } from "./cloudinary.service.js";
 
 export const registerService = async (

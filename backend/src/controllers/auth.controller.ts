@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler.util.js";
-import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
+import { ApiResponseV3 } from "../utils/apiResponse.util.js";
 
 import { StatusCodes } from "http-status-codes";
 import {
@@ -9,9 +9,8 @@ import {
   logoutService,
   changePasswordService,
   tokenRefreshService,
-
 } from "../services/auth.service.js";
-import { AppError } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/apiError.util.js";
 
 export const registerUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -152,7 +151,6 @@ export const changePassword = asyncHandler(
     );
   }
 );
-
 
 export const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {

@@ -37,6 +37,7 @@ const videoSchema = new Schema<VideoDocumentType, VideoModelType>(
   { timestamps: true }
 );
 
+// TODO: add deletion of comments when video is deleted
 // (videoSchema.plugin as any)(mongooseAggregatePaginate);
 videoSchema.plugin(mongooseAggregatePaginate);
 

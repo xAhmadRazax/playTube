@@ -1,40 +1,93 @@
 import { StatusCodes } from "http-status-codes";
-import { Video } from "../models/Video.model.js";
+import { Video } from "../models/video.model.js";
 import { VideoDocumentType } from "../types/videoModel.type.js";
-import { AppError } from "../utils/ApiError.util.js";
+import { AppError } from "../utils/apiError.util.js";
 import { cloudinaryService } from "./cloudinary.service.js";
 import { isValidObjectId, Types } from "mongoose";
+import { DeleteApiResponse, UploadApiResponse } from "cloudinary";
+import { ParsedQs } from "qs";
+import { ApiFeatures } from "../utils/apiFeatures.js";
+import { formatDurationFromSecondsToMinutes } from "../utils/general.util.js";
+import { updateVideoType, VideoPublishType } from "../schemas/video.schema.js";
+export const getAllVideosService = async (
+  queryObj: ParsedQs
+): Promise<VideoDocumentType[]> => {
+  const featuredQuery = new ApiFeatures(Video.find(), queryObj)
+    .filter()
+    .sort()
+    .limitFields()
+    .paginate();
+
+  const videos = await featuredQuery.queryBuilder;
+
+  return videos;
+};
 
 export const publishVideoService = async (
   userId: string,
-  videoData: {
-    videoLocalPath: string;
-    thumbnailLocalPath: string;
-    title: string;
-    description?: string;
-  }
+  videoData: VideoPublishType
 ): Promise<VideoDocumentType> => {
   const batchPromises = [
-    cloudinaryService.uploadLargeMedia(videoData.videoLocalPath, {
+    cloudinaryService.uploadLargeMedia(videoData.video, {
       folder: `${userId}/videos`,
     }),
-    cloudinaryService.uploadMedia(videoData.thumbnailLocalPath, {
+    cloudinaryService.uploadMedia(videoData.thumbnail, {
       folder: `${userId}/thumbnails`,
     }),
   ];
 
-  // TODO: sicne im barhcing video if only one is failed other is save so i need to do what if video is loading but not thumbnail delete video vise versa
-  const [uploadedVideo, uploadedThumbnail] = await Promise.all(batchPromises);
+  let batchPromisesResult: PromiseSettledResult<UploadApiResponse>[] =
+    await Promise.allSettled(batchPromises);
 
-  console.log("Uploaded Video:", uploadedVideo);
-  console.log("Uploaded Thumbnail:", uploadedThumbnail);
+  const successfulUploads: UploadApiResponse[] = [];
+  const failedUploads: { error: any }[] = [];
+
+  batchPromisesResult.forEach((r) => {
+    if (r && r.status === "rejected") {
+      failedUploads.push({ error: r.reason });
+    }
+    if (r.status === "fulfilled") {
+      successfulUploads.push(r.value);
+    }
+  });
+  // cleaning up incase of some resource gave error duo to some issue from cloudinary
+
+  if (failedUploads.length > 0) {
+    // delete items from the cloudinary server
+
+    await Promise.all(
+      successfulUploads.map((rp) => cloudinaryService.deleteMedia(rp.url))
+    );
+    // throw errors
+    const isFileTooBig = failedUploads.some(
+      (rp) => rp.error?.http_code === 413
+    );
+
+    if (isFileTooBig) {
+      throw new AppError(
+        StatusCodes.REQUEST_TOO_LONG,
+        "One of the file is too long",
+        {
+          errorCode: "ERR_CLOUDINARY_FILE_TOO_LONG",
+        }
+      );
+    } else {
+      throw new AppError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        "Something went wrong",
+        { errorCode: "ERR_INTERNAL_SERVER" }
+      );
+    }
+  }
+  const [uploadedVideo, uploadedThumbnail] = successfulUploads;
+
   const video = await Video.create({
     title: videoData.title,
-    description: videoData.description || "",
+    description: videoData?.description || "",
     videoFile: uploadedVideo?.url,
     thumbnail: uploadedThumbnail?.url,
+    duration: formatDurationFromSecondsToMinutes(uploadedVideo?.duration || 0),
     owner: userId,
-    duration: uploadedVideo?.duration || 0,
   });
 
   return video;
@@ -114,11 +167,8 @@ export const getVideoByIdService = async (videoId: string) => {
 };
 
 export const updateVideoService = async (
-  data: {
-    title?: string;
-    description?: string;
-    thumbnail?: string;
-  },
+  data: updateVideoType,
+
   videoId: string,
   userId: string
 ) => {
@@ -163,12 +213,9 @@ export const updateVideoService = async (
   );
 
   if (oldThumbnail) {
-    await cloudinaryService.deleteMedia(
-      "playTube" + oldThumbnail.split("/playTube")[1].split(".")[0],
-      {
-        invalidate: true,
-      }
-    );
+    await cloudinaryService.deleteMedia(oldThumbnail, {
+      invalidate: true,
+    });
   }
 
   return await Video.aggregate([
@@ -252,4 +299,97 @@ export const deleteVideoService = async (videoId: string) => {
       errorCode: "ERR_INVALID_VIDEO_ID",
     });
   }
+
+  const deletedVideo = await Video.findByIdAndDelete(videoId);
+
+  if (deletedVideo) {
+    const batchArr: Promise<DeleteApiResponse>[] = [
+      cloudinaryService.deleteMedia(deletedVideo!.videoFile),
+    ];
+    if (deletedVideo && deletedVideo?.thumbnail) {
+      batchArr.push(cloudinaryService.deleteMedia(deletedVideo!.thumbnail));
+    }
+
+    await Promise.all(batchArr);
+  }
+  return deletedVideo;
+};
+export const togglePublishStatusService = async (
+  videoId: string,
+  publish: boolean
+) => {
+  if (!videoId || !isValidObjectId(videoId)) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Invalid video ID", {
+      errorCode: "ERR_INVALID_VIDEO_ID",
+    });
+  }
+
+  await Video.findByIdAndUpdate(videoId, {
+    $set: {
+      isPublished: publish,
+    },
+  });
+
+  return await Video.aggregate([
+    {
+      $match: { _id: new Types.ObjectId(videoId) },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              email: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "video",
+        as: "comments",
+
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+            },
+          },
+          {
+            $project: {
+              username: 1,
+              email: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "likes",
+      },
+    },
+    {
+      $addFields: {
+        commentsCount: { $size: "$comments" },
+        likesCount: { $size: "$likes" },
+      },
+    },
+  ]);
 };

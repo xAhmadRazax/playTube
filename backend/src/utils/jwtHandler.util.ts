@@ -1,6 +1,6 @@
 import { StatusCodes } from "http-status-codes";
-import { User } from "../models/User.model.js";
-import { AppError } from "./ApiError.util.js";
+import { User } from "../models/user.model.js";
+import { AppError } from "./apiError.util.js";
 import { UserDocumentType } from "../types/userModel.type.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 

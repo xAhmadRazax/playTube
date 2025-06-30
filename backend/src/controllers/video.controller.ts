@@ -2,34 +2,48 @@ import { Request, Response, NextFunction } from "express";
 import mongoose, { isValidObjectId } from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.util.js";
 import {
+  deleteVideoService,
+  getAllVideosService,
   getVideoByIdService,
   publishVideoService,
+  togglePublishStatusService,
   updateVideoService,
 } from "../services/video.service.js";
-import { ApiResponseV3 } from "../utils/ApiResponse.util.js";
+import { ApiResponseV3 } from "../utils/apiResponse.util.js";
 import { StatusCodes } from "http-status-codes";
-import { AppError } from "../utils/ApiError.util.js";
-import { Multer } from "multer";
-import { read } from "fs";
-// import {Video} from "../models/video.model.js"
-// import {User} from "../models/user.model.js"
-// import {ApiError} from "../utils/ApiError.js"
-// import {ApiResponse} from "../utils/ApiResponse.js"
-// import {asyncHandler} from "../utils/asyncHandler.js"
-// import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import { AppError } from "../utils/apiError.util.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
+  // get all videos based on query, sort, pagination
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
-  //TODO: get all videos based on query, sort, pagination
+
+  const modifiedQuery = { ...req.query };
+  if (modifiedQuery?.userId) {
+    modifiedQuery.owner = req.query.userId;
+    delete modifiedQuery.userId;
+  }
+
+  const videos = await getAllVideosService(req.query);
+  ApiResponseV3.sendJSON(
+    res,
+    StatusCodes.OK,
+    `${videos.length > 0 ? "Videos found successfully" : "No Video Found"}`,
+    {
+      data: videos,
+    }
+  );
 });
 
 const publishVideo = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
+    // get video, upload to cloudinary, create video
+
     const { title, description } = req.body;
     const files = req.files as { [key: string]: Express.Multer.File[] };
+    console.log(files);
     const videoData = {
-      videoLocalPath: files.video[0]?.path,
-      thumbnailLocalPath: files.thumbnail[0]?.path,
+      video: files.video[0]?.path,
+      thumbnail: files.thumbnail[0]?.path,
       title,
       description,
     };
@@ -42,13 +56,13 @@ const publishVideo = asyncHandler(
       "Video published successfully",
       video
     );
-
-    // TODO: get video, upload to cloudinary, create video
   }
 );
 
 const getVideoById = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
+    // get video by id
+
     const { videoId } = req.params;
 
     if (!videoId || !isValidObjectId(videoId)) {
@@ -58,7 +72,6 @@ const getVideoById = asyncHandler(
     }
 
     const video = await getVideoByIdService(videoId);
-    //TODO: get video by id
 
     ApiResponseV3.sendJSON(res, StatusCodes.OK, "Video fetched successfully", {
       video,
@@ -88,8 +101,6 @@ const updateVideo = asyncHandler(
     }
 
     const updatedVideo = await updateVideoService(data, videoId, req?.user?.id);
-    // so i need to do soemthing with the reqbody as it has the thngy like title description thumbnail
-    // we wont allow user to change the fking video
 
     //TODO: update video details like title, description, thumbnail
 
@@ -100,18 +111,35 @@ const updateVideo = asyncHandler(
 );
 
 const deleteVideo = asyncHandler(async (req, res) => {
+  // delete vide
+
   const { videoId } = req.params;
   if (!videoId || !isValidObjectId(videoId)) {
     throw new AppError(StatusCodes.BAD_REQUEST, "Invalid video ID", {
       errorCode: "ERR_INVALID_VIDEO_ID",
     });
   }
+  await deleteVideoService(videoId);
 
-  //TODO: delete video
+  ApiResponseV3.sendJSON(res, StatusCodes.OK, "Video Deleted Successfully");
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const { publishVideo } = req.body;
+
+  const video = await togglePublishStatusService(videoId, publishVideo);
+
+  ApiResponseV3.sendJSON(
+    res,
+    StatusCodes.OK,
+    publishVideo
+      ? "video Publish successfully"
+      : "Video unpublish successfully",
+    {
+      data: video,
+    }
+  );
 });
 
 export {
