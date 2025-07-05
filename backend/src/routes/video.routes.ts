@@ -84,7 +84,7 @@ router
   .get(getVideoById)
   .patch(
     upload.single("thumbnail"),
-    zodSchemaValidation(updateVideoSchema),
+    zodSchemaValidation(updateVideoSchema, { isAsync: true }),
     updateVideo
   )
   .delete(deleteVideo);
