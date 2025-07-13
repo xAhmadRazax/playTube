@@ -7,8 +7,9 @@ import { Like } from "../models/like.model.js";
 import { VideoLike } from "../models/videoLike.model.js";
 import { CommentLike } from "../models/commentLike.schema.js";
 import { Comment } from "../models/comment.model.js";
-import { Tweet } from "../models/tweet.model.js";
 import { TweetLike } from "../models/tweetLike.mode.js";
+import { Tweet } from "../models/tweet.model.js";
+
 const handleResourceLike = async <T extends Document, U extends Document>(
   resourceModel: Model<T>,
   likeModel: Model<U>,

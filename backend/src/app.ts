@@ -38,10 +38,12 @@ import { router as authRouter } from "./routes/auth.route.js";
 import { router as userRouter } from "./routes/users.route.js";
 import { router as videoRouter } from "./routes/video.routes.js";
 import { router as likeRouter } from "./routes/like.routes.js";
+import { router as blogRouter } from "./routes/post.route.js";
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/likes", likeRouter);
+app.use("/api/v1/blogs", blogRouter);
 
 app.use((req, res, next) => {
   console.log(
