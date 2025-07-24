@@ -3,7 +3,7 @@ import { PostDocumentType } from "./postModel.type.js";
 
 export interface TweetSchemaType extends PostDocumentType {
   content: string;
-  image: string;
+  coverImage: string;
 }
 export interface TweetDocumentType extends TweetSchemaType, Document {
   paginate: any;

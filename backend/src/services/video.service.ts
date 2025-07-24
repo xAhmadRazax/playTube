@@ -117,25 +117,49 @@ export const getVideoByIdService = async (videoId: string) => {
     },
     {
       $lookup: {
-        from: "comments",
-        localField: "_id",
-        foreignField: "video",
+        // from: "comments",
+        // localField: "_id",
+        // // foreignField: "video",
+        // foreignField: "resource.item",
         as: "comments",
 
+        from: "comments",
+        let: { videoId: "$_id" },
         pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$resource.item", "$$videoId"] },
+                  { $eq: ["$resource.kind", "Video"] },
+                ],
+              },
+            },
+          },
           {
             $lookup: {
               from: "users",
               localField: "owner",
               foreignField: "_id",
               as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    email: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
             },
           },
+
           {
             $project: {
-              username: 1,
-              email: 1,
-              avatar: 1,
+              content: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              owner: 1,
             },
           },
         ],
@@ -218,7 +242,7 @@ export const updateVideoService = async (
     });
   }
 
-  return await Video.aggregate([
+  const updatedVideoWithData = await Video.aggregate([
     {
       $match: { _id: new Types.ObjectId(videoId) },
     },
@@ -241,25 +265,49 @@ export const updateVideoService = async (
     },
     {
       $lookup: {
-        from: "comments",
-        localField: "_id",
-        foreignField: "video",
-        as: "comments",
+        // from: "comments",
+        // localField: "_id",
+        // foreignField: "video",
+        // as: "comments",
 
+        from: "comments",
+        as: "comments",
+        let: { videoId: "$_id" },
         pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$resource.item", "$$videoId"] },
+                  { $eq: ["$resource.kind", "Video"] },
+                ],
+              },
+            },
+          },
           {
             $lookup: {
               from: "users",
               localField: "owner",
               foreignField: "_id",
               as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    email: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
             },
           },
+
           {
             $project: {
-              username: 1,
-              email: 1,
-              avatar: 1,
+              content: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              owner: 1,
             },
           },
         ],
@@ -280,6 +328,14 @@ export const updateVideoService = async (
       },
     },
   ]);
+
+  if (!updatedVideoWithData.length) {
+    throw new AppError(StatusCodes.NOT_ACCEPTABLE, "Video not found", {
+      errorCode: "ERR_VIDEO_NOT_FOUND",
+    });
+  }
+
+  return updatedVideoWithData.at(0);
   // this  one is tricky as we have a thumbnail updation init which in case
   // need data of the video
 

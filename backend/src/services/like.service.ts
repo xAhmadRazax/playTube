@@ -5,7 +5,7 @@ import { AppError } from "../utils/apiError.util.js";
 import { Video } from "../models/video.model.js";
 import { Like } from "../models/like.model.js";
 import { VideoLike } from "../models/videoLike.model.js";
-import { CommentLike } from "../models/commentLike.schema.js";
+import { CommentLike } from "../models/commentLike.model.js";
 import { Comment } from "../models/comment.model.js";
 import { TweetLike } from "../models/tweetLike.mode.js";
 import { Tweet } from "../models/tweet.model.js";

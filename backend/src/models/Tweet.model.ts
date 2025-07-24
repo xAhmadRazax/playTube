@@ -22,7 +22,7 @@ const tweetSchema = new Schema<TweetDocumentType, TweetModelType>({
     require: [true, "tweet Content is missing"],
     type: String,
   },
-  image: {
+  coverImage: {
     type: String,
   },
 });
