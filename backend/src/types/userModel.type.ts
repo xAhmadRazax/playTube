@@ -10,9 +10,18 @@ export interface UserSchemaType {
   coverImage: string | undefined;
   watchHistory: VideoDocumentType[];
   refreshTokens: string[];
+  isVerified: boolean;
+  accountStatus: "active" | "suspended" | "banned";
+  monetizationStatus:
+    | "eligible"
+    | "not_eligible"
+    | "pending_review"
+    | "rejected";
   passwordResetToken?: string;
-  passwordResetExpiry?: number;
+  passwordResetExpiry?: Date;
   passwordChangedAt?: number;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,5 +49,28 @@ export interface UserDocumentType extends UserSchemaType, Document {
     ip: string,
     removeTokenFlag?: boolean
   ): Promise<void>;
+
+  generateVerifyToken(): string;
+  generatePasswordResetToken(): string;
+  isPasswordResetTokenValid(): string;
 }
-export interface UserModelType extends Model<UserDocumentType> {}
+export interface UserModelType extends Model<UserDocumentType> {
+  generateCryptoToken(): string;
+  encryptCryptoToken(
+    token: string,
+    algo?:
+      | "md5"
+      | "sha1"
+      | "sha224"
+      | "sha256"
+      | "sha384"
+      | "sha512"
+      | "sha3-224"
+      | "sha3-256"
+      | "sha3-384"
+      | "sha3-512"
+      | "ripemd160"
+      | "blake2b512"
+      | "blake2s256"
+  ): string;
+}

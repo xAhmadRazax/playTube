@@ -9,30 +9,42 @@ import {
   logoutService,
   changePasswordService,
   tokenRefreshService,
+  verifyUserService,
+  sendVerifyEmailService,
+  forgotPasswordService,
+  verifyPasswordResetTokenService,
+  resetPasswordService,
 } from "../services/auth.service.js";
 import { AppError } from "../utils/apiError.util.js";
 
+//creates a new unverified user (can only watch videos)
 export const registerUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    // getting files
+    // getting files from multer
     const files = req.files as { [key: string]: Express.Multer.File[] };
 
-    //   getting the local path of images
+    //   getting local path of images
     const avatarLocalPath =
       files?.avatar?.length > 0 ? files?.avatar[0]?.path : null;
     const coverImageLocalPath =
       files?.coverImage?.length > 0 ? files?.coverImage[0]?.path : null;
 
-    // getting data from body
+    // getting data from user (request body)
+
+    const url = `${req.protocol}://${req.get("host")}${req.baseUrl}`;
+
     const { username, fullName, email, password } = req.body;
-    const user = await registerService({
-      username,
-      fullName,
-      email,
-      password,
-      avatar: avatarLocalPath || "",
-      coverImage: coverImageLocalPath || "",
-    });
+    const user = await registerService(
+      {
+        username,
+        fullName,
+        email,
+        password,
+        avatar: avatarLocalPath || "",
+        coverImage: coverImageLocalPath || "",
+      },
+      url
+    );
     ApiResponseV3.sendJSON(
       res,
       StatusCodes.CREATED,
@@ -41,7 +53,16 @@ export const registerUser = asyncHandler(
     );
   }
 );
+export const verifyUser = asyncHandler(async (req: Request, res: Response) => {
+  const { token } = req.params;
+  if (!token) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Verify Token is missing");
+  }
 
+  await verifyUserService(token);
+
+  ApiResponseV3.sendJSON(res, StatusCodes.OK, "User was verify successfully");
+});
 export const loginUser = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { identifier, password } = req.body;
@@ -109,6 +130,19 @@ export const logoutUser = asyncHandler(
   }
 );
 
+export const sendVerifyEmail = asyncHandler(
+  async (req: Request, res: Response) => {
+    const url = `${req.protocol}://${req.get("host")}${req.baseUrl}`;
+
+    await sendVerifyEmailService(req.user.id, url);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "verifying email Send Successfully"
+    );
+  }
+);
 export const changePassword = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const { refreshToken, accessToken, user } = await changePasswordService(
@@ -151,7 +185,59 @@ export const changePassword = asyncHandler(
     );
   }
 );
+export const forgotPassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
+    if (!email) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Email is missing", {
+        errorCode: "ERR_MISSING_EMAIL",
+      });
+    }
+    const url = `${req.protocol}://${req.get("host")}${req.baseUrl}`;
+    await forgotPasswordService(email, url);
 
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "If an account with that email exists, a password reset link has been sent."
+    );
+  }
+);
+
+export const verifyPasswordResetToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { token } = req.params;
+
+    if (!token) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Token is missing", {
+        errorCode: "ERR_TOKEN_MISSING",
+      });
+    }
+
+    await verifyPasswordResetTokenService(token);
+
+    ApiResponseV3.sendJSON(res, StatusCodes.OK, "Token is valid");
+  }
+);
+export const resetPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { token } = req.params;
+    const { password } = req.body;
+    if (!token) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "Token is missing", {
+        errorCode: "ERR_TOKEN_MISSING",
+      });
+    }
+    const updatedUser = await resetPasswordService(password, token);
+
+    ApiResponseV3.sendJSON(
+      res,
+      StatusCodes.OK,
+      "Password updated Successfully",
+      { data: updatedUser }
+    );
+  }
+);
 export const refreshAccessToken = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const incomingRefreshToken =

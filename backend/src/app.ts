@@ -15,8 +15,11 @@ if (process?.env?.NODE_ENV === "development") {
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
+    // origin: process.env.CORS_ORIGIN,
+    origin: "http://localhost:3000", // Specific origin, not "*"
+    credentials: true, // Allow credentials
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -46,6 +49,10 @@ app.use("/api/v1/posts", postRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/likes", likeRouter);
 app.use("/api/v1/comments", commentRouter);
+
+// admin routes
+import { router as settingsRouter } from "./routes/adminSettings.route.js";
+app.use("/api/v1/admin-settings", settingsRouter);
 
 app.use((req, res, next) => {
   console.log(

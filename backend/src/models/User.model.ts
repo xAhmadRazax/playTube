@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 import { Schema, model } from "mongoose";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -43,6 +45,20 @@ const userSchema = new Schema<UserDocumentType, UserModelType>(
       type: String,
       required: [true, "Avatar URL is required."],
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    accountStatus: {
+      type: String,
+      enum: ["active", "suspended", "banned"],
+      default: "active",
+    },
+    monetizationStatus: {
+      type: String,
+      enum: ["eligible", "not_eligible", "pending_review", "rejected"],
+      default: "not_eligible",
+    },
     coverImage: String,
     watchHistory: [
       {
@@ -52,8 +68,10 @@ const userSchema = new Schema<UserDocumentType, UserModelType>(
     ],
     refreshTokens: [String],
     passwordResetToken: String,
-    passwordResetExpiry: Number,
+    passwordResetExpiry: Date,
     passwordChangedAt: Number,
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
   },
   {
     timestamps: true,
@@ -164,5 +182,60 @@ userSchema.methods.updateRefreshToken = async function (
     deviceInfo: device,
     ipAddress: ip,
   });
+};
+
+userSchema.methods.generateVerifyToken = function (this: UserDocumentType) {
+  const token = User.generateCryptoToken();
+  const encryptedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+  this.emailVerificationToken = encryptedToken;
+  this.emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+  return token;
+};
+userSchema.methods.generatePasswordResetToken = function (
+  this: UserDocumentType
+) {
+  const token = User.generateCryptoToken();
+  const encryptedToken = User.encryptCryptoToken(token);
+  this.passwordResetToken = encryptedToken;
+  this.passwordResetExpiry = new Date(Date.now() + 60 * 60 * 1000);
+  return token;
+};
+userSchema.methods.isPasswordResetTokenValid = function (
+  this: UserDocumentType
+) {
+  if (
+    this?.passwordResetExpiry &&
+    new Date(this.passwordResetExpiry).getTime() < Date.now()
+  ) {
+    return false;
+  }
+  return true;
+};
+// static methods
+
+userSchema.statics.generateCryptoToken = function (): string {
+  return crypto.randomBytes(32).toString("hex");
+};
+userSchema.statics.encryptCryptoToken = function (
+  token: string,
+  algo:
+    | "md5"
+    | "sha1"
+    | "sha224"
+    | "sha256"
+    | "sha384"
+    | "sha512"
+    | "sha3-224"
+    | "sha3-256"
+    | "sha3-384"
+    | "sha3-512"
+    | "ripemd160"
+    | "blake2b512"
+    | "blake2s256" = "sha256"
+) {
+  return crypto.createHash(algo).update(token).digest("hex");
 };
 export const User = model<UserDocumentType, UserModelType>("User", userSchema);

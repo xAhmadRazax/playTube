@@ -34,12 +34,14 @@ import { ALLOWED_IMAGE_MIMES_TYPES } from "../constants.js";
 
 export const tweetPostSchema = zod.object({
   content: zod
-    .string({ required_error: "content is required" })
+    .string({ error: "content is required" })
     .min(3, { message: "Content must be at least 3 characters long" })
     .trim(),
   coverImage: zod.custom<File>(
     (file) => {
-      return file && ALLOWED_IMAGE_MIMES_TYPES.includes(file.mimetype);
+      return (
+        file instanceof File && ALLOWED_IMAGE_MIMES_TYPES.includes(file.type)
+      );
     },
     `Unsupported image type, please select one of following (${ALLOWED_IMAGE_MIMES_TYPES.map(
       (v) => `.${v.split("/")[1]}`

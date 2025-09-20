@@ -17,26 +17,26 @@ import mongoose from "mongoose";
 
 function handleZodError(err: ZodError): AppError {
   let errorMessage = "";
-  const formattedErrors = (err as ZodError).issues.reduce(
-    (acc, issue) => {
-      const field = issue.path[0];
-      /* this convert he zod error
-      // {
-         fieldName:error message,
-         fieldName2:error message
-         } */
+  // const formattedErrors = (err as ZodError).issues.reduce(
+  //   (acc, issue) => {
+  //     const field = issue.path[0];
+  //     /* this convert he zod error
+  //     // {
+  //        fieldName:error message,
+  //        fieldName2:error message
+  //        } */
 
-      errorMessage += issue.message + " ";
-      return {
-        ...acc,
-        [field]: acc[field]
-          ? // this append all errors msg related to one field to single message
-            `${acc[field].endsWith(".") ? acc[field].slice(0, -1) : acc[field]}, ${issue.message}`
-          : issue.message,
-      };
-    },
-    {} as Record<string, string>
-  );
+  //     errorMessage += issue.message + " ";
+  //     return {
+  //       ...acc,
+  //       [field]: acc[field]
+  //         ? // this append all errors msg related to one field to single message
+  //           `${acc[field].endsWith(".") ? acc[field].slice(0, -1) : acc[field]}, ${issue.message}`
+  //         : issue.message,
+  //     };
+  //   },
+  //   {} as Record<string, string>
+  // );
 
   console.log(err);
   return new AppError(
@@ -44,7 +44,7 @@ function handleZodError(err: ZodError): AppError {
     errorMessage.trim() || "Input Validation failed.",
     {
       errorCode: `ERR_ZOD_VALIDATION`,
-      errors: formattedErrors,
+      // errors: formattedErrors,
       stack: err.stack,
     }
   );

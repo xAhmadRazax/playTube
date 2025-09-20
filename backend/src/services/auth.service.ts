@@ -1,4 +1,9 @@
+import fs from "fs";
+
 import { StatusCodes } from "http-status-codes";
+import { UploadApiErrorResponse, UploadApiResponse } from "cloudinary";
+
+import { Email } from "../utils/Email.js";
 import { User } from "../models/user.model.js";
 import { PublicUserType, UserDocumentType } from "../types/userModel.type.js";
 import { AppError } from "../utils/apiError.util.js";
@@ -10,7 +15,8 @@ import {
 import { BlacklistModel } from "../models/blacklist.model.js";
 import { UserSession } from "../models/userSession.model.js";
 import { cloudinaryService } from "./cloudinary.service.js";
-
+import { generateRandomIdMongoDb } from "../utils/generateRandomId.util.js";
+import { cleanupMedia } from "../utils/cleanupMedia.js";
 export const registerService = async (
   // req: Request,
   {
@@ -20,39 +26,103 @@ export const registerService = async (
     password,
     avatar: avatarLocalPath,
     coverImage: coverImageLocalPath,
-  }: RegisterUserType
+  }: RegisterUserType,
+  url: string
 ): Promise<UserDocumentType> => {
+  // generating id as we need the id to store user data in cloudinary
+  const id = await generateRandomIdMongoDb(User);
+
   // create user object
-  const user = await User.create({
-    username: username.toLowerCase(),
-    fullName,
-    email,
-    password,
-    // avatar: avatar?.url,
-    avatar: avatarLocalPath,
-    // coverImage: coverImage?.url || null,
-    coverImage: coverImageLocalPath || null,
-  });
-  //   uploading file to cloudinary
-  // const avatar = await uploadOnCloudinary(avatarLocalPath!,username,"profile");
-  const avatar = await cloudinaryService.uploadMedia(avatarLocalPath, {
-    folder: `profile/${user.id}`,
+  let avatar: UploadApiResponse | null = null;
+  let coverImage: UploadApiResponse | null = null;
+
+  try {
+    avatar = await cloudinaryService.uploadMedia(avatarLocalPath, {
+      folder: `profile/${id}`,
+    });
+    if (coverImageLocalPath) {
+      coverImage = await cloudinaryService.uploadMedia(coverImageLocalPath, {
+        folder: `profile/${id}`,
+      });
+    }
+
+    const user = await User.create({
+      _id: id,
+      username: username.toLowerCase(),
+      fullName,
+      email,
+      password,
+      avatar: avatar?.url,
+      coverImage: coverImage?.url,
+    });
+
+    const urlVerifyToken = `${url}/verify/${user.generateVerifyToken()}`;
+
+    await (
+      await Email.init(user.toJSON(), urlVerifyToken)
+    ).sendWelcomeAndVerifyEmail();
+
+    await user.save();
+    // TODO: add email generation for verifying account
+    return user;
+  } catch (error) {
+    // now now there are too many condition for which the error could
+    // throw
+    // 1 uploading on clouding throw some error, in this case delete
+    // the local image path as any image upload on to cloudinary
+    await cleanupMedia({
+      remoteUrls: [avatar?.url, coverImage?.url].filter((url): url is string =>
+        Boolean(url)
+      ),
+      localPaths: [avatarLocalPath, coverImageLocalPath].filter(
+        (url): url is string => Boolean(url)
+      ),
+    });
+    // 2 generating email throws some error
+
+    throw error;
+  }
+};
+
+export const verifyUserService = async (token: string) => {
+  const encryptedCryptoToken = User.encryptCryptoToken(token);
+
+  console.log(encryptedCryptoToken);
+  const user = await User.findOne({
+    emailVerificationToken: encryptedCryptoToken,
+    emailVerificationExpires: { $gt: Date.now() },
   });
 
-  let coverImage;
-  if (coverImageLocalPath) {
-    coverImage = await cloudinaryService.uploadMedia(coverImageLocalPath, {
-      folder: `profile/${user.id}`,
+  if (!user) {
+    // throw new AppError(StatusCodes.NOT_FOUND, "Invalid verify Token", {
+    //   errorCode: "ERR_INVALID_VERIFY_TOKEN",
+    // });
+    throw new AppError(StatusCodes.GONE, "Token expired or invalid Token", {
+      errorCode: "ERR_EXPIRED_VERIFY_TOKEN",
     });
   }
-  //  changing localPath to cloudinary
-  user.avatar = avatar?.url || undefined;
-  user.coverImage = coverImage?.url || undefined;
 
-  // updating database with new images url
-  await user.save();
-  // return it
-  return user;
+  // check if the token expreiy time is less than current time
+
+  // if (
+  //   user?.emailVerificationExpires &&
+  //   new Date(user?.emailVerificationExpires).getTime() < Date.now()
+  // ) {
+  //   throw new AppError(StatusCodes.GONE, "Token expired", {
+  //     errorCode: "ERR_EXPIRED_VERIFY_TOKEN",
+  //   });
+  // }
+  if (user?.isVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "User is already Verified", {
+      errorCode: "ERR_USER_IS_VERIFIED",
+    });
+  }
+
+  user.isVerified = true;
+
+  user.emailVerificationExpires = undefined;
+  user.emailVerificationToken = undefined;
+  user.save();
 };
 export const loginService = async (
   { identifier, password }: LoginUserType,
@@ -104,6 +174,29 @@ export const logoutService = async (refreshToken: string) => {
     });
   }
 };
+
+export const sendVerifyEmailService = async (userId: string, url: string) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(StatusCodes.NOT_FOUND, "User not found.", {
+      errorCode: "ERR_USER_NOT_FOUND",
+    });
+  }
+
+  if (user.isVerified) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "User is already verified", {
+      errorCode: "ERR_USER_IS_VERIFIED",
+    });
+  }
+
+  const urlVerifyToken = `${url}/verify-user/${user.generateVerifyToken()}`;
+
+  await user.save();
+  await (
+    await Email.init(user.toJSON(), urlVerifyToken)
+  ).sendWelcomeAndVerifyEmail();
+};
+
 export const changePasswordService = async (
   userId: string,
   data: { currentPassword: string; newPassword: string },
@@ -148,6 +241,64 @@ export const changePasswordService = async (
   };
 };
 
+export const forgotPasswordService = async (email: "string", url: string) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    return;
+  }
+
+  const token = user.generatePasswordResetToken();
+  const urlVerifyToken = `${url}/verify-reset-token/${token}`;
+
+  await user.save();
+  // send email to user with the verify code
+  await (
+    await Email.init(user.toJSON(), urlVerifyToken)
+  ).sendPasswordResetEmail();
+};
+
+export const verifyPasswordResetTokenService = async (token: string) => {
+  if (!token) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Token is missing", {
+      errorCode: "ERR_TOKEN_MISSING",
+    });
+  }
+
+  console.log("???????????");
+  const user = await User.findOne({
+    passwordResetToken: User.encryptCryptoToken(token),
+    passwordResetExpiry: { $gt: Date.now() },
+  });
+  if (!user) {
+    throw new AppError(StatusCodes.GONE, "Token is invalid or has expired", {
+      errorCode: "ERR_EXPIRE_PASSWORD_RESET_TOKEN",
+    });
+  }
+};
+
+export const resetPasswordService = async (password: string, token: string) => {
+  if (!token) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "Token is missing", {
+      errorCode: "ERR_TOKEN_MISSING",
+    });
+  }
+  const user = await User.findOne({
+    passwordResetToken: User.encryptCryptoToken(token),
+    passwordResetExpiry: { $gt: Date.now() },
+  });
+  if (!user) {
+    throw new AppError(StatusCodes.GONE, "Token is invalid or has expired", {
+      errorCode: "ERR_EXPIRE_PASSWORD_RESET_TOKEN",
+    });
+  }
+
+  user.password = password;
+  user.passwordResetExpiry = undefined;
+  user.passwordResetToken = undefined;
+  await user.save();
+
+  return user;
+};
 export const tokenRefreshService = async (
   refreshToken: string,
   deviceInfo: string,

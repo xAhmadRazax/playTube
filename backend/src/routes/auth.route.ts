@@ -5,7 +5,11 @@ import {
   logoutUser,
   refreshAccessToken,
   changePassword,
-
+  verifyUser,
+  sendVerifyEmail,
+  forgotPassword,
+  verifyPasswordResetToken,
+  resetPassword,
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { validationAndFileCleanupHandler } from "../middlewares/validationAndFileCleanup.middleware.js";
@@ -34,16 +38,24 @@ router.route("/register").post(
   validationAndFileCleanupHandler(RegisterSchema),
   registerUser
 );
+router.route("/verify-user/:token").get(verifyUser);
+
+router.route("/forgot-password");
 
 router
   .route("/login")
   .post(zodSchemaValidation(LoginSchema, { isAsync: true }), loginUser);
 
 router.route("/logout").get(protect, logoutUser);
+
+router.route("/forgot-password").post(forgotPassword);
+router.route("/verify-reset-token/:token").get(verifyPasswordResetToken);
+router.route("/reset-password/:token").post(resetPassword);
+
+router.route("/resend-verification").post(protect, sendVerifyEmail);
 router
   .route("/change-password")
   .post(zodSchemaValidation(ChangePasswordSchema), protect, changePassword);
-
 
 router.route("/refresh-token").post(refreshAccessToken);
 export { router };
