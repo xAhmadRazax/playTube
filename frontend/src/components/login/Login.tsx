@@ -1,29 +1,106 @@
+import { Link, useNavigate } from '@tanstack/react-router'
 import { LockKeyhole, Mail } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import { Button } from '../ui/button'
 
 import type { ChangeEvent, FormEvent } from 'react'
-import { axios } from '@/utils/axios.util'
 import { useAuthContext } from '@/contexts/AuthContext'
 
+// const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{6,}$/
+
+const HAS_UPPERCASE_REGEX = /[A-Z]/
+const HAS_NUMBER_REGEX = /[0-9]/
+const HAS_SPECIAL_REGEX = /[^A-Za-z0-9\s]/
+const HAS_LENGTH_REGEX = /^.{6,}$/
+
+interface PasswordErrorType {
+  hasError: boolean
+  ErrorType: 'Uppercase' | 'Numeric' | 'Special' | 'length'
+  ErrorMessage: string
+  regex: RegExp
+}
 export const Login = () => {
-  const { login } = useAuthContext()
-  const [errors, setErrors] = useState(true)
+  const navigate = useNavigate()
+
+  const { login, loading } = useAuthContext()
   const [email, setEmail] = useState<string>()
   const [password, setPassword] = useState<string>()
-  const cb = () => {}
+  const [passwordError, setPasswordErrors] = useState<Array<PasswordErrorType>>(
+    [
+      {
+        hasError: false,
+        ErrorType: 'Uppercase',
+        ErrorMessage: 'At least one uppercase letter',
+        regex: HAS_UPPERCASE_REGEX,
+      },
+      {
+        hasError: false,
+        ErrorType: 'Numeric',
+        ErrorMessage: 'At least one number',
+        regex: HAS_NUMBER_REGEX,
+      },
+      {
+        hasError: false,
+        ErrorType: 'Special',
+        ErrorMessage: 'At least one special character',
+        regex: HAS_SPECIAL_REGEX,
+      },
+      {
+        hasError: false,
+        ErrorType: 'length',
+        ErrorMessage: 'Min length must be 6 characters',
+        regex: HAS_LENGTH_REGEX,
+      },
+    ],
+  )
+  const [hasPasswordError, setHasPasswordError] = useState<boolean>(false)
+
   const emailChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
     console.log(e.target.value)
     setEmail(e.target.value)
   }
   const passwordChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
+    if (hasPasswordError) {
+      setHasPasswordError(false)
+      setPasswordErrors((errors) =>
+        errors.map((err) => ({ ...err, hasError: false })),
+      )
+    }
     setPassword(e.target.value)
   }
 
+  useEffect(() => {
+    // if (password && password.length > 0 && !PASSWORD_REGEX.test(password)) {
+    //   setPasswordErrors('invalid password format')
+    // } else {
+    //   setPasswordErrors()
+    // }
+
+    const setTimeId = setTimeout(() => {
+      if (password) {
+        setPasswordErrors((errors) =>
+          errors.map((err) => {
+            if (!err.regex.test(password)) {
+              setHasPasswordError(true)
+              return { ...err, hasError: true }
+            } else {
+              return err
+            }
+          }),
+        )
+      }
+    }, 500)
+    // wso what i want? i want when use type something it check the above check
+    // but if it ke
+    return () => {
+      clearTimeout(setTimeId)
+    }
+  }, [password])
+
   const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    toast('🦄 Wow so easy!', {
+    toast('Fetching data...', {
       position: 'top-right',
       autoClose: 5000,
       hideProgressBar: false,
@@ -33,16 +110,17 @@ export const Login = () => {
       progress: undefined,
     })
     if (!email || !password) {
-      console.log('u are fucked boss u are fucked')
       return
     }
     const res = await login({ identifier: email, password })
-    console.log(res)
+    if (res.email) {
+      return await navigate({ to: '/' })
+    }
   }
   return (
     <section
-      className={`bg-zinc-950  w-[min(90%,400px)] rounded-2xl border  shadow-linear  px-6 py-12 
-        ${!errors ? ' shadow-red-700/70 border-red-700' : ' shadow-zinc-700/65 border-zinc-600'}`}
+      className={`bg-zinc-950  w-[min(90%,400px)] rounded-2xl border  shadow-linear  px-6 pt-12 pb-6 
+        ${hasPasswordError ? ' shadow-red-700/70 border-red-700' : ' shadow-zinc-700/65 border-zinc-600'} transition-all `}
     >
       <header className="flex flex-col gap-3 items-center">
         <h2 className="capitalize font-bold text-3xl text-zinc-100">
@@ -51,13 +129,13 @@ export const Login = () => {
 
         <div className="text-sm flex gap-1.5">
           <span className="text-zinc-300">Don't have an account yet?</span>
-          <a
+          <Link
             className="underline hover:no-underline text-zinc-100 font-bold outline-none  focus-visible:ring-zinc-500 focus-visible:ring-2 "
-            href="/signup"
+            to="/auth/register"
             aria-label="Sign up for an account"
           >
             Sign up
-          </a>
+          </Link>
         </div>
       </header>
       <div className="border-b border-zinc-600 mt-4 w-1/4 m-auto"></div>
@@ -90,10 +168,104 @@ export const Login = () => {
               placeholder="Password"
             />
           </div>
-        </div>
 
-        <Button className="mt-6 bg-blue-600 font-bold text-base hover:bg-zinc-800  text-zinc-200 cursor-pointer w-full flex focus-visible:ring-zinc-500 ">
-          Login
+          {/* {hasPasswordError ? (
+            <ul className="text-xs flex flex-col gap-1">
+              {passwordError.map((err) =>
+                err.hasError ? (
+                  <li className="text-red-300 flex gap-1 items-center ">
+                    <span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        className="w-4 h-4 stroke-2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 18 18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </span>{' '}
+                    {err.ErrorMessage}
+                  </li>
+                ) : (
+                  <li className="text-green-300 flex gap-1 items-center ">
+                    <span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        className="w-4 h-4 stroke-2"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="m4.5 12.75 6 6 9-13.5"
+                        />
+                      </svg>
+                    </span>
+                    {err.ErrorMessage}
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : (
+            <></>
+          )} */}
+        </div>
+        <ul
+          className={`text-xs flex flex-col gap-1 transition-all duration-300 
+    ${hasPasswordError ? 'opacity-100 max-h-40 mt-6' : 'opacity-0 max-h-0 overflow-hidden'}`}
+        >
+          {passwordError.map((err) =>
+            err.hasError ? (
+              <li
+                key={err.ErrorType}
+                className="text-red-300 flex gap-1 items-center"
+              >
+                ❌ {err.ErrorMessage}
+              </li>
+            ) : (
+              <li
+                key={err.ErrorType}
+                className="text-green-300 flex gap-1 items-center"
+              >
+                ✅ {err.ErrorMessage}
+              </li>
+            ),
+          )}
+        </ul>
+
+        <Button
+          disabled={hasPasswordError || loading}
+          className={`mt-8 bg-blue-600 font-bold text-base hover:bg-blue-800  text-zinc-200 cursor-pointer w-full flex focus-visible:ring-zinc-500 disabled:bg-gray-500 ${loading ? 'disabled:bg-indigo-500' : ''}`}
+        >
+          {loading ? (
+            <span className="flex items-center justify-center">
+              <svg className="mr-3 size-5 animate-spin ..." viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Processing
+            </span>
+          ) : (
+            'Login'
+          )}
         </Button>
       </form>
       <div className="relative flex  items-center justify-center mt-8">

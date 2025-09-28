@@ -14,8 +14,28 @@ import {
   forgotPasswordService,
   verifyPasswordResetTokenService,
   resetPasswordService,
+  checkIdentifierService,
 } from "../services/auth.service.js";
 import { AppError } from "../utils/apiError.util.js";
+
+export const checkIdentifier = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { identifier } = req.body;
+
+    const identifierAvailable = await checkIdentifierService(identifier);
+
+    ApiResponseV3.sendJSON(
+      res,
+      identifierAvailable ? StatusCodes.OK : StatusCodes.CONFLICT,
+      identifierAvailable
+        ? "This identifier is available."
+        : "This identifier is already in use. Please choose a different one.",
+      {
+        available: identifierAvailable,
+      }
+    );
+  }
+);
 
 //creates a new unverified user (can only watch videos)
 export const registerUser = asyncHandler(
@@ -33,15 +53,24 @@ export const registerUser = asyncHandler(
 
     const url = `${req.protocol}://${req.get("host")}${req.baseUrl}`;
 
-    const { username, fullName, email, password } = req.body;
+    const {
+      username,
+      // fullName,
+      email,
+      password,
+      dateOfBirth,
+      gender,
+    } = req.body;
     const user = await registerService(
       {
         username,
-        fullName,
+        // fullName,
         email,
         password,
         avatar: avatarLocalPath || "",
         coverImage: coverImageLocalPath || "",
+        dateOfBirth,
+        gender,
       },
       url
     );

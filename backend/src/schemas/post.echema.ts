@@ -35,7 +35,7 @@ import { ALLOWED_IMAGE_MIMES_TYPES } from "../constants.js";
 export const tweetPostSchema = zod.object({
   content: zod
     .string({ error: "content is required" })
-    .min(3, { message: "Content must be at least 3 characters long" })
+    .min(3, { error: "Content must be at least 3 characters long" })
     .trim(),
   coverImage: zod.custom<File>(
     (file) => {

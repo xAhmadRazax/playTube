@@ -1,32 +1,58 @@
+import { error } from "console";
 import { z as zod } from "zod";
 export const RegisterSchema = zod.object({
   username: zod
-    // .string({ required_error: "Username is required." })
-    .string({ error: "Username is required." })
-    .min(3, { message: "Username must be at least 3 characters long." })
-    .max(50, { message: "Username must not exceed 50 characters." })
+    .string({
+      error: (iss) =>
+        iss.input === undefined
+          ? "username is required."
+          : "Please provide a valid username",
+    })
+    .min(3, { error: "Username must be at least 3 characters long." })
+    .max(50, { error: "Username must not exceed 50 characters." })
     .trim(),
 
-  fullName: zod
-    // .string({ required_error: "Full name is required." })
-    .string({ error: "Full name is required." })
-    .min(3, { message: "Full name must be at least 3 characters long." })
-    .max(50, { message: "Full name must not exceed 50 characters." })
-    .trim(),
+  // fullName: zod
+  //   // .string({ required_error: "Full name is required." })
+  //   .string({
+  //     error: (iss) =>
+  //       iss.input === undefined
+  //         ? "fullName is required."
+  //         : "Please provide a valid fullName",
+  //   })
+  //   .min(3, { error: "Full name must be at least 3 characters long." })
+  //   .max(50, { error: "Full name must not exceed 50 characters." })
+  //   .trim(),
 
-  email: zod
-    // .string({ required_error: "Email is required." })
-    .string({ error: "Email is required." })
-    .email({ message: "Please provide a valid email address." })
-    .trim(),
-
+  email: zod.email({
+    error: (iss) =>
+      iss.input === undefined
+        ? "Email is required."
+        : "Please provide a valid email address",
+  }),
+  dateOfBirth: zod.iso.date({
+    error: (iss) =>
+      iss.input === undefined
+        ? "Date of birth is required."
+        : "Please provide a valid date of birth.",
+  }),
   // avatar: zod.string({ required_error: "Avatar is required." }).trim(),
-  avatar: zod.string({ error: "Avatar is required." }).trim(),
+  avatar: zod.string({ error: "Avatar is required." }).trim().optional(),
   coverImage: zod.string().trim().optional(),
+  gender: zod.enum(["male", "female", "others"], {
+    error: (iss) =>
+      iss.input === undefined
+        ? "gender is required."
+        : "Please provide a valid gender.",
+  }),
   password: zod
-    // .string({ required_error: "Password is required." })
-    .string({ error: "Password is required." })
-    .min(6, { message: "Password must be at least 6 characters long." })
+    .string({
+      error: (iss) =>
+        iss.input === undefined
+          ? "password is required."
+          : "Please provide a valid password",
+    })
+    .min(6, { error: "Password must be at least 6 characters long." })
     .regex(/[A-Z]/, "Password must have at least one uppercase letter.")
     .regex(/[0-9]/, "Password must include at least one number.")
     .regex(
@@ -41,14 +67,22 @@ export type RegisterUserType = zod.infer<typeof RegisterSchema>;
 export const LoginSchema = zod
   .object({
     identifier: zod
-      .string()
-      .min(1, { message: "email or username is required." })
+      .string({
+        error: (iss) =>
+          iss.input === undefined
+            ? "identifier is required."
+            : "Please provide a valid identifier",
+      })
       .trim(),
 
     password: zod
-      .string()
-      .min(1, { message: "Password is required." })
-      .min(6, { message: "Password must be at least 6 characters long." })
+      .string({
+        error: (iss) =>
+          iss.input === undefined
+            ? "password is required."
+            : "Please provide a valid password",
+      })
+      .min(6, { error: "Password must be at least 6 characters long." })
       .regex(/[A-Z]/, "Password must have an uppercase letter.")
       .regex(/[0-9]/, "Password must include a number.")
       .regex(/[^A-Za-z0-9\s]/, "Password must include a special character.")
@@ -58,13 +92,13 @@ export const LoginSchema = zod
     (data: { password: string; identifier: string }) => {
       const isEmail = data.identifier.includes("@");
       if (isEmail) {
-        return zod.string().email().trim().safeParse(data.identifier).success;
+        return zod.email().trim().safeParse(data.identifier).success;
       }
 
       return data.identifier.length >= 3;
     },
     {
-      message: "identifier must either be a valid Email or username.",
+      error: "identifier must either be a valid Email or username.",
       path: ["identifier"],
     }
   );
@@ -74,8 +108,13 @@ export type LoginUserType = zod.infer<typeof LoginSchema>;
 export const ChangePasswordSchema = zod.object({
   currentPassword: zod
     // .string({ required_error: "Current password is required." })
-    .string({ error: "Current password is required." })
-    .min(6, { message: "Current password must be at least 6 characters long." })
+    .string({
+      error: (iss) =>
+        iss.input === undefined
+          ? "Current Password is required."
+          : "Please provide a valid Current Password",
+    })
+    .min(6, { error: "Current password must be at least 6 characters long." })
     .regex(/[A-Z]/, "Current password must have at least one uppercase letter.")
     .regex(/[0-9]/, "Current password must include at least one number.")
     .regex(
@@ -86,8 +125,13 @@ export const ChangePasswordSchema = zod.object({
 
   newPassword: zod
     // .string({ required_error: "New password is required." })
-    .string({ error: "New password is required." })
-    .min(6, { message: "New password must be at least 6 characters long." })
+    .string({
+      error: (iss) =>
+        iss.input === undefined
+          ? "New Password is required."
+          : "Please provide a valid New Password",
+    })
+    .min(6, { error: "New password must be at least 6 characters long." })
     .regex(/[A-Z]/, "New password must have at least one uppercase letter.")
     .regex(/[0-9]/, "New password must include at least one number.")
     .regex(
@@ -111,7 +155,7 @@ export const UpdateUserImagesSchema = zod
       return !!(data.avatar || data.coverImage);
     },
     {
-      message: "Avatar or coverImage is required.",
+      error: "Avatar or coverImage is required.",
       path: ["avatar", "coverImage"],
     }
   );
@@ -120,31 +164,3 @@ export const updateCoverImageSchema = zod.object({
   // coverImage: zod.string({ required_error: "CoverImage is required." }),
   coverImage: zod.string({ error: "CoverImage is required." }),
 });
-
-// export const LoginSchema = zod
-//   .object({
-//     email: zod
-//       .string()
-//       .email({ message: "Please provide a valid email address." })
-//       .trim()
-//       .optional(),
-//     username: zod
-//       .string()
-//       .min(3, { message: "Username must be at least 3 characters long." })
-//       .max(50, { message: "Username must not exceed 50 characters." })
-//       .trim()
-//       .optional(),
-
-//     password: zod
-//       .string()
-//       .min(1, { message: "Password is required." })
-//       .min(6, { message: "Password must be at least 6 characters long." })
-//       .regex(/[A-Z]/, "Password must have an uppercase letter.")
-//       .regex(/[0-9]/, "Password must include a number.")
-//       .regex(/[^A-Za-z0-9\s]/, "Password must include a special character.")
-//       .trim(),
-//   })
-//   .refine((data) => data.email || data.password, {
-//     message: "Either email or username is required",
-//     path: ["email", "username"],
-//   });

@@ -5,6 +5,8 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { UserDocumentType, UserModelType } from "../types/userModel.type.js";
 import { UserSession } from "./userSession.model.js";
+import { string } from "zod";
+import { generateRandomAvatarColor } from "../utils/general.util.js";
 
 const userSchema = new Schema<UserDocumentType, UserModelType>(
   {
@@ -18,13 +20,22 @@ const userSchema = new Schema<UserDocumentType, UserModelType>(
       minlength: [3, "Username must be at least 3 characters long."],
       maxlength: [50, "Username must not exceed 50 characters."],
     },
-    fullName: {
+    // fullName: {
+    //   type: String,
+    //   required: [true, "Full name is required."],
+    //   trim: true,
+    //   index: true,
+    //   minlength: [3, "Full name must be at least 3 characters long."],
+    //   maxlength: [50, "Full name must not exceed 50 characters."],
+    // },
+    gender: {
       type: String,
-      required: [true, "Full name is required."],
-      trim: true,
-      index: true,
-      minlength: [3, "Full name must be at least 3 characters long."],
-      maxlength: [50, "Full name must not exceed 50 characters."],
+      enum: ["male", "female", "others"],
+      required: [true, "Gender is required"],
+    },
+    dateOfBirth: {
+      type: Date,
+      required: [true, "Date of birth is required"],
     },
     email: {
       type: String,
@@ -43,7 +54,10 @@ const userSchema = new Schema<UserDocumentType, UserModelType>(
     },
     avatar: {
       type: String,
-      required: [true, "Avatar URL is required."],
+      // required: [true, "Avatar URL is required."],
+    },
+    avatarColor: {
+      type: String,
     },
     isVerified: {
       type: Boolean,
@@ -89,6 +103,13 @@ const userSchema = new Schema<UserDocumentType, UserModelType>(
     },
   }
 );
+
+userSchema.pre("save", async function (next): Promise<void> {
+  if (!this.isNew) return next();
+
+  this.avatarColor = generateRandomAvatarColor();
+  next();
+});
 
 userSchema.pre("save", async function (next): Promise<void> {
   if (!this.isModified("password") || this.isNew) return next();

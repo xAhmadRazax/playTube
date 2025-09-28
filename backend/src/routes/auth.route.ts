@@ -10,6 +10,7 @@ import {
   forgotPassword,
   verifyPasswordResetToken,
   resetPassword,
+  checkIdentifier,
 } from "../controllers/auth.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { validationAndFileCleanupHandler } from "../middlewares/validationAndFileCleanup.middleware.js";
@@ -23,6 +24,8 @@ import {
 import { zodSchemaValidation } from "../middlewares/zodSchemaValidation.middleware.js";
 import { protect } from "../middlewares/auth.middleware.js";
 const router = Router();
+
+router.route("/check-identifier").post(checkIdentifier);
 
 router.route("/register").post(
   upload.fields([

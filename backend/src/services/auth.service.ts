@@ -17,15 +17,34 @@ import { UserSession } from "../models/userSession.model.js";
 import { cloudinaryService } from "./cloudinary.service.js";
 import { generateRandomIdMongoDb } from "../utils/generateRandomId.util.js";
 import { cleanupMedia } from "../utils/cleanupMedia.js";
+
+export const checkIdentifierService = async (identifier: string) => {
+  if (
+    await User.findOne({
+      $or: [
+        {
+          email: identifier,
+        },
+        { username: identifier },
+      ],
+    })
+  ) {
+    return false;
+  }
+
+  return true;
+};
 export const registerService = async (
   // req: Request,
   {
     username,
-    fullName,
+    // fullName,
     email,
     password,
     avatar: avatarLocalPath,
     coverImage: coverImageLocalPath,
+    dateOfBirth,
+    gender,
   }: RegisterUserType,
   url: string
 ): Promise<UserDocumentType> => {
@@ -37,9 +56,11 @@ export const registerService = async (
   let coverImage: UploadApiResponse | null = null;
 
   try {
-    avatar = await cloudinaryService.uploadMedia(avatarLocalPath, {
-      folder: `profile/${id}`,
-    });
+    if (avatarLocalPath) {
+      avatar = await cloudinaryService.uploadMedia(avatarLocalPath, {
+        folder: `profile/${id}`,
+      });
+    }
     if (coverImageLocalPath) {
       coverImage = await cloudinaryService.uploadMedia(coverImageLocalPath, {
         folder: `profile/${id}`,
@@ -49,7 +70,9 @@ export const registerService = async (
     const user = await User.create({
       _id: id,
       username: username.toLowerCase(),
-      fullName,
+      // fullName,
+      dateOfBirth,
+      gender,
       email,
       password,
       avatar: avatar?.url,

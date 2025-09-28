@@ -4,13 +4,16 @@ import { VideoDocumentType } from "./videoModel.type.js";
 export interface UserSchemaType {
   username: string;
   email: string;
-  fullName: string;
+  // fullName: string;
   password: string;
   avatar: string | undefined;
+  avatarColor: string;
   coverImage: string | undefined;
   watchHistory: VideoDocumentType[];
   refreshTokens: string[];
   isVerified: boolean;
+  gender: "male" | "female" | "others";
+  dateOfBirth: Date;
   accountStatus: "active" | "suspended" | "banned";
   monetizationStatus:
     | "eligible"
