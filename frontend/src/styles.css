@@ -8,16 +8,14 @@
 }
 
 @layer utilities {
-  @layer utilities {
-    /* Fix autofill background + text color for dark inputs */
-    .no-autofill:-webkit-autofill,
-    .no-autofill:-webkit-autofill:hover,
-    .no-autofill:-webkit-autofill:focus,
-    .no-autofill:-webkit-autofill:active {
-      -webkit-box-shadow: 0 0 0px 1000px #18181b inset; /* matches bg-zinc-950 */
-      -webkit-text-fill-color: #f4f4f5; /* matches text-zinc-100 */
-      transition: background-color 5000s ease-in-out 0s; /* prevent white flash */
-    }
+  .no-autofill:-webkit-autofill,
+  .no-autofill:-webkit-autofill:hover,
+  .no-autofill:-webkit-autofill:focus,
+  .no-autofill:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px #18181b inset;
+    -webkit-text-fill-color: #f4f4f5;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: #f4f4f5; /* ← ADD THIS LINE - fixes the black cursor */
   }
 }
 .hamburger {

@@ -18,5 +18,5 @@ export interface RegisterUserType {
   confirmPassword?: string;
   gender: string;
   // avatar: File | null
-  birthday: Date | undefined;
+  dateOfBirth: string;
 }

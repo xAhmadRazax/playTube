@@ -36,6 +36,13 @@ type AuthContextType = {
     available: boolean;
     message?: string;
   }>;
+  register: ({
+    username,
+    email,
+    password,
+    dateOfBirth,
+    gender,
+  }: RegisterUserType) => Promise<User>;
 };
 
 const authContext = createContext<AuthContextType>({
@@ -45,6 +52,9 @@ const authContext = createContext<AuthContextType>({
   setIsLoading: () => {},
   setError: () => {},
   login: () => {
+    throw new Error('AuthProvider not found');
+  }, // ✅
+  register: () => {
     throw new Error('AuthProvider not found');
   }, // ✅
   checkIdentifier: () => {
@@ -120,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     username,
     email,
     password,
-    birthday,
+    dateOfBirth,
     gender,
   }: RegisterUserType) => {
     try {
@@ -128,10 +138,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         username,
         email,
         password,
-        birthday,
+        dateOfBirth,
         gender,
       });
-
+      console.log(data);
       return data;
     } catch (err: unknown) {
       if (err instanceof AxiosError) {
@@ -148,9 +158,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           switch (err.response.status) {
             case 400:
               setError('Bad request - please check your input');
-              break;
-            case 401:
-              setError('Invalid credentials');
               break;
             case 403:
               setError('Access forbidden');
@@ -231,6 +238,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         loading: isLoading,
         login: loginUser,
+        register: registerUser,
         user,
         error,
         setError,

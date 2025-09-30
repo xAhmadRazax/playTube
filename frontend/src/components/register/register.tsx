@@ -6,6 +6,7 @@ import { DatePicker } from '../formElements/DatePicker';
 import type { ChangeEvent } from 'react';
 import type { RegisterUserType } from '@/types/user.type';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/store/useAuth';
 
 // const Button = ({
 //   children,
@@ -43,7 +44,9 @@ const HAS_NUMBER_REGEX = /[0-9]/;
 const HAS_SPECIAL_REGEX = /[^A-Za-z0-9\s]/;
 const HAS_LENGTH_REGEX = /^.{6,}$/;
 export const Register = () => {
-  const { checkIdentifier, loading } = useAuthContext();
+  // const { checkIdentifier, loading, register } = useAuthContext();
+
+  const { error, register, checkIdentifier, isLoading } = useAuthStore();
 
   const [formData, setFormData] = useState<RegisterUserType>({
     username: '',
@@ -52,7 +55,7 @@ export const Register = () => {
     confirmPassword: '',
     gender: '',
     // avatar: null,
-    birthday: undefined,
+    dateOfBirth: '',
   });
 
   const [emailError, setEmailError] = useState<string>('');
@@ -108,12 +111,20 @@ export const Register = () => {
   //   }
 
   const handleBirthdayChange = (date: Date | undefined) => {
-    setFormData((val) => ({ ...val, birthday: date }));
+    if (!date) {
+      return;
+    }
+    const isoDate = date.toISOString();
+    console.log(isoDate, typeof isoDate);
+    setFormData((val) => ({
+      ...val,
+      dateOfBirth: isoDate,
+    }));
   };
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
     handleInputChange('password')(e);
 
-    const password = e.target.value;
+    // const password = e.target.value;
 
     // Basic password validation
     // const errors = [
@@ -172,7 +183,7 @@ export const Register = () => {
     const timer = setTimeout(async () => {
       if (formData.username) {
         const data = await checkIdentifier(
-          { identifier: formData.username },
+          formData.username,
           () => {
             setIdentifierCheckLoading((ob) => ({
               ...ob,
@@ -205,7 +216,7 @@ export const Register = () => {
     const timer = setTimeout(async () => {
       if (formData.email) {
         const data = await checkIdentifier(
-          { identifier: formData.username },
+          formData.email,
           () => {
             setIdentifierCheckLoading((ob) => ({
               ...ob,
@@ -230,11 +241,19 @@ export const Register = () => {
     };
   }, [formData.email]);
 
-  const submitHandler = (e: React.FormEvent<HTMLFormElement>) => {
+  const submitHandler = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (Object.values(formData).some((val) => !val)) {
       return;
     }
+
+    const formattedDateOfBirth = formData.dateOfBirth.split('T')[0];
+    const data = await register({
+      ...formData,
+      dateOfBirth: formattedDateOfBirth,
+    });
+
+    console.log(data);
   };
 
   return (
@@ -272,7 +291,7 @@ export const Register = () => {
               required
               onChange={handleInputChange('username')}
               value={formData.username}
-              className={`w-full rounded text-zinc-100 ps-10 py-1 border  outline-none  focus-visible:ring-2 no-autofill bg-transparent placeholder:text-zinc-400 ${usernameError ? 'border-red-600 focus-visible:ring-red-500' : 'border-zinc-600 focus-visible:ring-zinc-500'}`}
+              className={`w-full rounded text-zinc-100 ps-10 py-1 border  outline-none  focus-visible:ring-2 no-autofill  bg-transparent placeholder:text-zinc-400 ${usernameError ? 'border-red-600 focus-visible:ring-red-500' : 'border-zinc-600 focus-visible:ring-zinc-500'}`}
               type="text"
               id="username"
               placeholder="Username"
@@ -288,7 +307,7 @@ export const Register = () => {
               required
               onChange={handleInputChange('email')}
               value={formData.email}
-              className={`w-full rounded text-zinc-100 ps-10 py-1 border  outline-none  focus-visible:ring-2 no-autofill bg-transparent placeholder:text-zinc-400 ${usernameError ? 'border-red-600 focus-visible:ring-red-500' : 'border-zinc-600 focus-visible:ring-zinc-500'}`}
+              className={`w-full rounded text-zinc-100 ps-10 py-1 border  outline-none  focus-visible:ring-2 no-autofill  placeholder:text-zinc-400 ${emailError ? 'border-red-600 focus-visible:ring-red-500' : 'border-zinc-600 focus-visible:ring-zinc-500'}`}
               type="email"
               id="email"
               placeholder="Email Address"
@@ -348,7 +367,9 @@ export const Register = () => {
           </div> */}
           <DatePicker
             name="DOB"
-            value={formData.birthday}
+            value={
+              formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined
+            }
             onChange={handleBirthdayChange}
           />
 
@@ -448,15 +469,15 @@ export const Register = () => {
           type="submit"
           disabled={
             hasPasswordError ||
-            loading ||
+            isLoading ||
             !!(
               formData.confirmPassword &&
               formData.password !== formData.confirmPassword
             )
           }
-          className={`mt-8 bg-blue-600 font-bold text-base hover:bg-blue-800 text-zinc-200 cursor-pointer w-full flex focus-visible:ring-zinc-500 disabled:bg-gray-500 ${loading ? 'disabled:bg-indigo-500' : ''}`}
+          className={`mt-8 bg-blue-600 font-bold text-base hover:bg-blue-800 text-zinc-200 cursor-pointer w-full flex focus-visible:ring-zinc-500 disabled:bg-gray-500 ${isLoading ? 'disabled:bg-indigo-500' : ''}`}
         >
-          {loading ? (
+          {isLoading ? (
             <span className="flex items-center justify-center">
               <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
                 <circle

@@ -6,13 +6,13 @@ export const register = async ({
   username,
   password,
   gender,
-  birthday,
+  dateOfBirth,
 }: RegisterUserType) => {
   const { data } = await axios.post('/auth/register', {
     email,
     username,
     gender,
-    birthday,
+    dateOfBirth,
     password,
   });
 
