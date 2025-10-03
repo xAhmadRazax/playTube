@@ -61,7 +61,7 @@ export const registerUser = asyncHandler(
       dateOfBirth,
       gender,
     } = req.body;
-    const user = await registerService(
+    const { user, accessToken, refreshToken } = await registerService(
       {
         username,
         // fullName,
@@ -72,13 +72,20 @@ export const registerUser = asyncHandler(
         dateOfBirth,
         gender,
       },
-      url
+      url, // give us the brower and device
+      req.headers["user-agent"] || "",
+      // gives up the ip address
+      (Array.isArray(req.headers["x-forwarded-for"])
+        ? req.headers["x-forwarded-for"][0]
+        : req.headers["x-forwarded-for"]) ||
+        req.socket.remoteAddress ||
+        ""
     );
     ApiResponseV3.sendJSON(
       res,
       StatusCodes.CREATED,
       "User created successfully.",
-      user
+      { user, accessToken, refreshToken }
     );
   }
 );
@@ -100,7 +107,9 @@ export const loginUser = asyncHandler(
         identifier,
         password,
       },
+      // give us the brower and device
       req.headers["user-agent"] || "",
+      // gives up the ip address
       (Array.isArray(req.headers["x-forwarded-for"])
         ? req.headers["x-forwarded-for"][0]
         : req.headers["x-forwarded-for"]) ||

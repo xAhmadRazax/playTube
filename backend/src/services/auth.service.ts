@@ -46,8 +46,14 @@ export const registerService = async (
     dateOfBirth,
     gender,
   }: RegisterUserType,
-  url: string
-): Promise<UserDocumentType> => {
+  url: string,
+  device: string,
+  ip: string
+): Promise<{
+  user: UserDocumentType;
+  refreshToken: string;
+  accessToken: string;
+}> => {
   // generating id as we need the id to store user data in cloudinary
   const id = await generateRandomIdMongoDb(User);
 
@@ -87,7 +93,22 @@ export const registerService = async (
 
     await user.save();
     // TODO: add email generation for verifying account
-    return user;
+
+    // // generate tokens
+    const { accessToken, refreshToken } = generateAccessAndRefreshTokenV1(user);
+
+    await UserSession.create({
+      userId: user.id,
+      refreshToken,
+      deviceInfo: device,
+      ipAddress: ip,
+    });
+
+    return {
+      user,
+      refreshToken: refreshToken || "",
+      accessToken: accessToken || "",
+    };
   } catch (error) {
     // now now there are too many condition for which the error could
     // throw
