@@ -39,6 +39,15 @@ export const protect = asyncHandler(
 
     // checking if user exist
     if (!user) {
+      const cookieOptions = {
+        httpOnly: true,
+        sameSite: true,
+        secure: false,
+      };
+      res
+        .cookie("accessToken", "", cookieOptions)
+        .cookie("refreshToken", "", cookieOptions);
+
       throw new AppError(
         StatusCodes.UNAUTHORIZED,
         "Invalid token or user no longer exist.",
