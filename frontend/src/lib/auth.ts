@@ -41,3 +41,8 @@ export const checkIdentifier = async ({
 
   return data;
 };
+
+export const refreshUser = async () => {
+  const { data } = await axios('/users/me');
+  return data;
+};

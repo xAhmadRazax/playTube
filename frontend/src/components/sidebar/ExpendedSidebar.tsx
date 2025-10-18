@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react'
-import { Link } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
-import { BrandControls } from '../navbar/BrandControls'
-import { ExpendedSidebarItem } from './ExpendedSidebarItem'
+import React, { useEffect, useState } from 'react';
+import { Link } from '@tanstack/react-router';
+import { ChevronRight } from 'lucide-react';
+import { BrandControls } from '../navbar/BrandControls';
+import { ExpendedSidebarItem } from './ExpendedSidebarItem';
 
-import type { Dispatch, SetStateAction } from 'react'
-import { useSettings } from '@/contexts/SettingsContent'
+import type { Dispatch, SetStateAction } from 'react';
+import { useSettings } from '@/contexts/SettingsContent';
+import { useSettingStore } from '@/store/useSettings';
 
 // const sidebarItems = [
 //   {
@@ -92,12 +93,12 @@ import { useSettings } from '@/contexts/SettingsContent'
 //   },
 // ]
 export interface ExpendedSidebarItemsType {
-  logo: React.ReactElement
-  content: string
-  to: string
-  hasDivider?: boolean
-  isPublic?: boolean
-  subCategories?: Array<ExpendedSidebarItemsType>
+  logo: React.ReactElement;
+  content: string;
+  to: string;
+  hasDivider?: boolean;
+  isPublic?: boolean;
+  subCategories?: Array<ExpendedSidebarItemsType>;
 }
 
 const sidebarItems: Array<ExpendedSidebarItemsType> = [
@@ -350,7 +351,7 @@ const sidebarItems: Array<ExpendedSidebarItemsType> = [
     content: 'Settings',
     to: '/',
   },
-]
+];
 export const ExpendedSidebar = ({
   isMenuOpen,
   setIsMenuOpen,
@@ -358,23 +359,23 @@ export const ExpendedSidebar = ({
   classes = 'z-40',
   toggleSidebar,
 }: {
-  hasBackdrop: boolean
-  isMenuOpen: boolean
-  setIsMenuOpen: Dispatch<SetStateAction<boolean>>
-  classes?: string
-  toggleSidebar: () => void
+  hasBackdrop: boolean;
+  isMenuOpen: boolean;
+  setIsMenuOpen: Dispatch<SetStateAction<boolean>>;
+  classes?: string;
+  toggleSidebar: () => void;
 }) => {
-  const isAuthenticated = !!false
+  const isAuthenticated = !!false;
 
-  const { settings, isLoading } = useSettings()
+  const { settings, isLoading } = useSettingStore();
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   if (!settings) {
     // do something
 
-    return <></>
+    return <></>;
   }
   return (
     // <aside className="hidden md:block  bg-zinc-800 ">
@@ -410,5 +411,5 @@ export const ExpendedSidebar = ({
         </ul>
       </nav>
     </aside>
-  )
-}
+  );
+};

@@ -5,6 +5,7 @@ import type { RegisterUserType, User } from '@/types/user.type';
 import {
   login as LoginService,
   checkIdentifier as checkIdentifierService,
+  refreshUser as refreshUserService,
   register as registerService,
 } from '@/lib/auth';
 
@@ -18,7 +19,7 @@ interface AuthState {
   }: {
     identifier: string;
     password: string;
-  }) => Promise<void>;
+  }) => Promise<User | void>;
   register: ({
     email,
     gender,
@@ -26,12 +27,13 @@ interface AuthState {
     password,
     username,
     confirmPassword,
-  }: RegisterUserType) => Promise<void>;
+  }: RegisterUserType) => Promise<User | void>;
   checkIdentifier: (
     identifier: string,
     loadingHandler?: () => void,
     loadingCleanUpHandler?: () => void,
   ) => Promise<{ available: boolean; message?: string }>;
+  refreshUser: () => Promise<User | void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -39,10 +41,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: '',
   login: async ({ identifier, password }) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: '' });
     try {
       const { data } = await LoginService({ identifier, password });
       set({ user: data.user as User });
+
+      return data.user;
     } catch (err: unknown) {
       if (err instanceof AxiosError) {
         if (err.response) {
@@ -119,16 +123,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     gender,
     dateOfBirth,
   }: RegisterUserType) => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: '' });
     try {
-      const data = await registerService({
+      const { data } = await registerService({
         username,
         email,
         password,
         dateOfBirth,
         gender,
       });
-      return data;
+      set({ user: data.user as User });
+      return data.user;
     } catch (err: unknown) {
       if (err instanceof AxiosError) {
         if (err.response) {
@@ -142,6 +147,51 @@ export const useAuthStore = create<AuthState>((set) => ({
               break;
             case 409:
               set({ error: 'email or username already exists' });
+              break;
+            // Unprocessable Entity
+            case 422:
+              set({ error: err.response.data?.message || 'Validation error' });
+              break;
+            case 500:
+              set({ error: 'Server error - please try again later' });
+              break;
+            default:
+              set({
+                error: `Error: ${err.response.data?.message || err.message}`,
+              });
+          }
+        } else if (err.request) {
+          // Network error
+          set({ error: 'Network error - please check your connection' });
+        } else {
+          // Other error
+          set({ error: err.message });
+        }
+      }
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+  refreshUser: async () => {
+    set({ isLoading: true, error: '' });
+    try {
+      const { data } = await refreshUserService();
+      set({ user: data.user as User });
+
+      return data.user;
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (err.response) {
+          // Server responded with error status
+          switch (err.response.status) {
+            case 400:
+              set({ error: 'Bad request - please check your input' });
+              break;
+            case 401:
+              set({ error: 'Invalid credentials' });
+              break;
+            case 403:
+              set({ error: 'Access forbidden' });
               break;
             // Unprocessable Entity
             case 422:

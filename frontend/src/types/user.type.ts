@@ -4,8 +4,13 @@ export interface User {
   fullName: string;
   avatar: string;
   isVerified: boolean;
-  accountStatus: string;
-  monetizationStatus: string;
+  accountStatus: 'active' | 'suspended' | 'banned';
+  monetizationStatus:
+    | 'eligible'
+    | 'not_eligible'
+    | 'pending_review'
+    | 'rejected';
+  gender: 'male' | 'female' | 'others';
   watchHistory: Array<any>;
   createdAt: Date;
   updatedAt: Date;

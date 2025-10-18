@@ -18,8 +18,25 @@
     caret-color: #f4f4f5; /* ← ADD THIS LINE - fixes the black cursor */
   }
 }
+@keyframes slideOut {
+  from {
+    transform: translateX(0%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0%);
+  }
+}
 .hamburger {
-  @apply flex items-center px-[7.3px]  w-11 h-11 rounded-full transition-all  duration-75 ease-in-out relative outline-0;
+  @apply flex items-center px-[8.5px]  w-11 h-11 rounded-full transition-all  duration-75 ease-in-out relative outline-0;
 
   &::before,
   &::after {
@@ -33,7 +50,8 @@
     @apply w-3/5 h-0.5 bg-zinc-100 transition-all  ease-in rounded-full;
   }
   & div {
-    @apply w-1/2 origin-right;
+    @apply w-1/2;
+    animation: slideIn 0.075s ease-in-out forwards; /* Default state */
   }
 
   &::before {
@@ -62,11 +80,8 @@
 
   &.active {
     & div {
-      @apply translate-x-full;
-    }
-
-    & div {
-      @apply bg-zinc-400;
+      /* @apply translate-x-full bg-zinc-400;*/
+      animation: slideOut 0.075s ease-in-out forwards;
     }
   }
 }

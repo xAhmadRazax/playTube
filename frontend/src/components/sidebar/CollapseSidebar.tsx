@@ -1,9 +1,9 @@
-import React from 'react'
-import { Link } from '@tanstack/react-router'
+import React from 'react';
+import { Link } from '@tanstack/react-router';
 
 export const CollapseSidebar = () => {
   return (
-    <aside className="hidden md:block  bg-zinc-800 h-full ">
+    <aside className="hidden md:block sticky top-0 w-f  bg-zinc-800 h-full ">
       <nav className="px-1 sticky top-0  pt-6">
         <ul className="flex flex-col items-center  gap-6">
           <li>
@@ -118,5 +118,5 @@ export const CollapseSidebar = () => {
         </ul>
       </nav>
     </aside>
-  )
-}
+  );
+};

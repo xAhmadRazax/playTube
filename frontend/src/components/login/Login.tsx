@@ -1,126 +1,47 @@
-import { Link, useNavigate } from '@tanstack/react-router'
-import { LockKeyhole, Mail } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
-import { toast } from 'react-toastify'
-import { Button } from '../ui/button'
+import { useForm } from 'react-hook-form';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { LockKeyhole, Mail } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
+import { Button } from '../ui/button';
+import { useAuthStore } from '@/store/useAuth';
+import { PASSWORD_RULES } from '@/constants/constants';
 
-import type { ChangeEvent, FormEvent } from 'react'
-import { useAuthContext } from '@/contexts/AuthContext'
-
-// const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s]).{6,}$/
-
-const HAS_UPPERCASE_REGEX = /[A-Z]/
-const HAS_NUMBER_REGEX = /[0-9]/
-const HAS_SPECIAL_REGEX = /[^A-Za-z0-9\s]/
-const HAS_LENGTH_REGEX = /^.{6,}$/
-
-interface PasswordErrorType {
-  hasError: boolean
-  ErrorType: 'Uppercase' | 'Numeric' | 'Special' | 'length'
-  ErrorMessage: string
-  regex: RegExp
+interface LoginType {
+  email: string;
+  password: string;
 }
+
 export const Login = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const { login, loading } = useAuthContext()
-  const [email, setEmail] = useState<string>()
-  const [password, setPassword] = useState<string>()
-  const [passwordError, setPasswordErrors] = useState<Array<PasswordErrorType>>(
-    [
-      {
-        hasError: false,
-        ErrorType: 'Uppercase',
-        ErrorMessage: 'At least one uppercase letter',
-        regex: HAS_UPPERCASE_REGEX,
-      },
-      {
-        hasError: false,
-        ErrorType: 'Numeric',
-        ErrorMessage: 'At least one number',
-        regex: HAS_NUMBER_REGEX,
-      },
-      {
-        hasError: false,
-        ErrorType: 'Special',
-        ErrorMessage: 'At least one special character',
-        regex: HAS_SPECIAL_REGEX,
-      },
-      {
-        hasError: false,
-        ErrorType: 'length',
-        ErrorMessage: 'Min length must be 6 characters',
-        regex: HAS_LENGTH_REGEX,
-      },
-    ],
-  )
-  const [hasPasswordError, setHasPasswordError] = useState<boolean>(false)
+  const { register, handleSubmit, watch } = useForm<LoginType>();
+  const { login, isLoading, error } = useAuthStore();
+  const password = watch('password');
+  const hasPasswordError = PASSWORD_RULES.some((el) => !el.valid(password));
 
-  const emailChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    console.log(e.target.value)
-    setEmail(e.target.value)
-  }
-  const passwordChangeHandler = (e: ChangeEvent<HTMLInputElement>) => {
-    if (hasPasswordError) {
-      setHasPasswordError(false)
-      setPasswordErrors((errors) =>
-        errors.map((err) => ({ ...err, hasError: false })),
-      )
+  const submitHandler = async (data: LoginType) => {
+    const userRes = await login({ identifier: data.email, password });
+    if (userRes?.email) {
+      return await navigate({ to: '/' });
     }
-    setPassword(e.target.value)
-  }
-
-  useEffect(() => {
-    // if (password && password.length > 0 && !PASSWORD_REGEX.test(password)) {
-    //   setPasswordErrors('invalid password format')
-    // } else {
-    //   setPasswordErrors()
-    // }
-
-    const setTimeId = setTimeout(() => {
-      if (password) {
-        setPasswordErrors((errors) =>
-          errors.map((err) => {
-            if (!err.regex.test(password)) {
-              setHasPasswordError(true)
-              return { ...err, hasError: true }
-            } else {
-              return err
-            }
-          }),
-        )
-      }
-    }, 500)
-    // wso what i want? i want when use type something it check the above check
-    // but if it ke
-    return () => {
-      clearTimeout(setTimeId)
+    if (error) {
+      toast.error(error, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: false,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
-  }, [password])
+  };
 
-  const submitHandler = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    toast('Fetching data...', {
-      position: 'top-right',
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: false,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-    })
-    if (!email || !password) {
-      return
-    }
-    const res = await login({ identifier: email, password })
-    if (res.email) {
-      return await navigate({ to: '/' })
-    }
-  }
   return (
     <section
-      className={`bg-zinc-950  w-[min(90%,400px)] rounded-2xl border  shadow-linear  px-6 pt-12 pb-6 
-        ${hasPasswordError ? ' shadow-red-700/70 border-red-700' : ' shadow-zinc-700/65 border-zinc-600'} transition-all `}
+      className={`bg-zinc-950  w-[min(90%,450px)] rounded-2xl border  shadow-linear  px-6 pt-12 pb-6 
+        ${password && hasPasswordError ? ' shadow-red-700/70 border-red-700' : ' shadow-zinc-700/65 border-zinc-600'} transition-all `}
     >
       <header className="flex flex-col gap-3 items-center">
         <h2 className="capitalize font-bold text-3xl text-zinc-100">
@@ -139,15 +60,15 @@ export const Login = () => {
         </div>
       </header>
       <div className="border-b border-zinc-600 mt-4 w-1/4 m-auto"></div>
-      <form onSubmit={submitHandler} className="">
+      <form onSubmit={handleSubmit(submitHandler)} className="">
         <div className="grid gap-6 mt-6">
           <div className="relative flex items-center">
             <label htmlFor="email" className="absolute ps-2">
               <Mail className="text-zinc-200" />
             </label>
             <input
+              {...register('email')}
               required
-              onChange={emailChangeHandler}
               className="w-full rounded text-zinc-100 ps-10 py-1 border border-zinc-600 outline-none focus-visible:ring-zinc-500 focus-visible:ring-2 no-autofill"
               type="email"
               id="email"
@@ -159,7 +80,7 @@ export const Login = () => {
               <LockKeyhole />
             </label>
             <input
-              onChange={passwordChangeHandler}
+              {...register('password')}
               autoComplete="no"
               required
               className="w-full rounded text-zinc-100 ps-10 py-1 border border-zinc-600 outline-none focus-visible:ring-zinc-500 focus-visible:ring-2 no-autofill"
@@ -168,83 +89,38 @@ export const Login = () => {
               placeholder="Password"
             />
           </div>
-
-          {/* {hasPasswordError ? (
-            <ul className="text-xs flex flex-col gap-1">
-              {passwordError.map((err) =>
-                err.hasError ? (
-                  <li className="text-red-300 flex gap-1 items-center ">
-                    <span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        className="w-4 h-4 stroke-2"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18 18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </span>{' '}
-                    {err.ErrorMessage}
-                  </li>
-                ) : (
-                  <li className="text-green-300 flex gap-1 items-center ">
-                    <span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        className="w-4 h-4 stroke-2"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="m4.5 12.75 6 6 9-13.5"
-                        />
-                      </svg>
-                    </span>
-                    {err.ErrorMessage}
-                  </li>
-                ),
-              )}
-            </ul>
-          ) : (
-            <></>
-          )} */}
         </div>
         <ul
-          className={`text-xs flex flex-col gap-1 transition-all duration-300 
-    ${hasPasswordError ? 'opacity-100 max-h-40 mt-6' : 'opacity-0 max-h-0 overflow-hidden'}`}
+          className={`text-xs grid grid-cols-2 gap-1 transition-all duration-300  
+        ${password && hasPasswordError ? 'opacity-100 max-h-40 mt-6' : 'opacity-0 max-h-0 overflow-hidden'}`}
         >
-          {passwordError.map((err) =>
-            err.hasError ? (
-              <li
-                key={err.ErrorType}
-                className="text-red-300 flex gap-1 items-center"
-              >
-                ❌ {err.ErrorMessage}
-              </li>
-            ) : (
-              <li
-                key={err.ErrorType}
-                className="text-green-300 flex gap-1 items-center"
-              >
-                ✅ {err.ErrorMessage}
-              </li>
-            ),
-          )}
+          {password &&
+            hasPasswordError &&
+            PASSWORD_RULES.map((err) =>
+              !err.valid(password) ? (
+                <li
+                  key={err.label}
+                  className="text-red-300 flex gap-1 items-center"
+                >
+                  ❌ {err.label}
+                </li>
+              ) : (
+                <li
+                  key={err.label}
+                  className="text-green-300 flex gap-1 items-center"
+                >
+                  ✅ {err.label}
+                </li>
+              ),
+            )}
+          {/* Password mismatch check */}
         </ul>
 
         <Button
-          disabled={hasPasswordError || loading}
-          className={`mt-8 bg-blue-600 font-bold text-base hover:bg-blue-800  text-zinc-200 cursor-pointer w-full flex focus-visible:ring-zinc-500 disabled:bg-gray-500 ${loading ? 'disabled:bg-indigo-500' : ''}`}
+          disabled={hasPasswordError || isLoading}
+          className={`mt-8 bg-blue-600 font-bold text-base hover:bg-blue-800  text-zinc-200 cursor-pointer w-full flex focus-visible:ring-zinc-500 disabled:bg-gray-500 ${isLoading ? 'disabled:bg-indigo-500' : ''}`}
         >
-          {loading ? (
+          {isLoading ? (
             <span className="flex items-center justify-center">
               <svg className="mr-3 size-5 animate-spin ..." viewBox="0 0 24 24">
                 <circle
@@ -307,5 +183,5 @@ export const Login = () => {
         <div></div>
       </footer>
     </section>
-  )
-}
+  );
+};
